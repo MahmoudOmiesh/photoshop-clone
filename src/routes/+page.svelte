@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { HandIcon } from '@lucide/svelte';
+	import { HandIcon, ZoomInIcon } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let canvas: HTMLCanvasElement | null = $state(null);
@@ -12,6 +12,8 @@
 	});
 
 	let isDragging = $state(false);
+	let isZooming = $state(false);
+
 	let isMouseDown = false;
 
 	const prevMouseCoords = { x: 0, y: 0 };
@@ -39,32 +41,46 @@
 	}
 
 	function updatePanning(e: MouseEvent) {
-		const localX = e.clientX;
-		const localY = e.clientY;
+		const mousePos = {
+			x: e.clientX,
+			y: e.clientY
+		};
 
-		viewportTransform.x += localX - prevMouseCoords.x;
-		viewportTransform.y += localY - prevMouseCoords.y;
+		viewportTransform.x += mousePos.x - prevMouseCoords.x;
+		viewportTransform.y += mousePos.y - prevMouseCoords.y;
 
-		prevMouseCoords.x = localX;
-		prevMouseCoords.y = localY;
+		prevMouseCoords.x = mousePos.x;
+		prevMouseCoords.y = mousePos.y;
 	}
 
 	function updateZooming(e: WheelEvent) {
-		const { x: oldX, y: oldY, scale: oldScale } = viewportTransform;
+		const scaleBy = 1.1;
 
-		const localX = e.clientX;
-		const localY = e.clientY;
+		const oldScale = viewportTransform.scale;
+		const mousePos = {
+			x: e.clientX,
+			y: e.clientY
+		};
 
-		const newScale = oldScale + e.deltaY * -0.01;
+		const mousePointTo = {
+			x: (mousePos.x - viewportTransform.x) / oldScale,
+			y: (mousePos.y - viewportTransform.y) / oldScale
+		};
 
-		const newX = localX - (localX - oldX) * (newScale / oldScale);
-		const newY = localY - (localY - oldY) * (newScale / oldScale);
+		let direction = e.deltaY > 0 ? -1 : 1;
+		if (e.ctrlKey) {
+			direction = -direction;
+		}
 
-		viewportTransform.x = newX;
-		viewportTransform.y = newY;
+		const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+		const newPos = {
+			x: mousePos.x - mousePointTo.x * newScale,
+			y: mousePos.y - mousePointTo.y * newScale
+		};
+
 		viewportTransform.scale = newScale;
-
-		console.log(viewportTransform);
+		viewportTransform.x = newPos.x;
+		viewportTransform.y = newPos.y;
 	}
 
 	onMount(() => {
@@ -104,15 +120,19 @@
 		isMouseDown = false;
 	}}
 	onwheel={(e) => {
-		updateZooming(e);
-		render();
+		if (isZooming) {
+			updateZooming(e);
+			render();
+		}
 	}}
 ></canvas>
 
-<Button
-	class="cursor-pointer absolute top-4 left-4 z-100"
-	variant={isDragging ? 'default' : 'outline'}
-	onclick={() => (isDragging = !isDragging)}
->
-	<HandIcon />
-</Button>
+<div class="absolute top-4 left-4 z-100 flex items-stretch gap-2">
+	<Button variant={isDragging ? 'default' : 'outline'} onclick={() => (isDragging = !isDragging)}>
+		<HandIcon />
+	</Button>
+
+	<Button variant={isZooming ? 'default' : 'outline'} onclick={() => (isZooming = !isZooming)}>
+		<ZoomInIcon />
+	</Button>
+</div>
