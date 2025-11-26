@@ -5,22 +5,26 @@
 	import { buttonVariants } from './ui/button';
 	import { cn } from '$lib/utils';
 
-	let files: FileList | undefined = $state();
 	const {
 		onImageAdded
 	}: {
-		onImageAdded: (photo: File) => void;
+		onImageAdded: (imageFile: File) => void;
 	} = $props();
 
-	$effect(() => {
+	function oninput(
+		e: Event & {
+			currentTarget: EventTarget & HTMLInputElement;
+		}
+	) {
+		const files = e.currentTarget.files;
 		if (!files || files.length === 0) return;
 
 		const lastFile = files[files.length - 1];
 		if (!lastFile.type.startsWith('image')) return;
 
 		onImageAdded(lastFile);
-	});
+	}
 </script>
 
-<Input type="file" class="sr-only" id="photo-picker-input" accept="image/*" bind:files />
+<Input type="file" class="sr-only" id="photo-picker-input" accept="image/*" {oninput} />
 <Label for="photo-picker-input" class="{cn(buttonVariants())}} px-3"><FileIcon /></Label>
