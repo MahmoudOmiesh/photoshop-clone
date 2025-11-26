@@ -1,134 +1,77 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { HandIcon, ZoomInIcon } from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { Layer, Rect, Stage, type KonvaWheelEvent } from 'svelte-konva';
 
-	let canvas: HTMLCanvasElement | null = $state(null);
-	let ctx: CanvasRenderingContext2D | null = $derived.by(() => {
-		if (canvas) {
-			return canvas.getContext('2d');
-		}
-		return null;
-	});
-
-	let isDragging = $state(false);
+	let isPanning = $state(false);
 	let isZooming = $state(false);
 
-	let isMouseDown = false;
+	let stageRef: Stage | null = null;
+	const stageConfig = $state({
+		width: 0,
+		height: 0
+	});
 
-	const prevMouseCoords = { x: 0, y: 0 };
-	const viewportTransform = { x: 0, y: 0, scale: 1 };
-
-	function render() {
-		// REMOVE LATER
-		if (canvas && ctx) {
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			ctx.setTransform(
-				viewportTransform.scale,
-				0,
-				0,
-				viewportTransform.scale,
-				viewportTransform.x,
-				viewportTransform.y
-			);
-
-			const w = 100;
-			const h = 100;
-			ctx.fillStyle = 'red';
-
-			ctx.fillRect(0.5 * (window.innerWidth - w), 0.5 * (window.innerHeight - h), w, h);
+	function updateZooming(e: KonvaWheelEvent) {
+		if (!isZooming || !stageRef) {
+			return;
 		}
-	}
 
-	function updatePanning(e: MouseEvent) {
-		const mousePos = {
-			x: e.clientX,
-			y: e.clientY
-		};
+		e.evt.preventDefault();
+		const stage = stageRef.node;
+		const scaleBy = 1.08;
 
-		viewportTransform.x += mousePos.x - prevMouseCoords.x;
-		viewportTransform.y += mousePos.y - prevMouseCoords.y;
-
-		prevMouseCoords.x = mousePos.x;
-		prevMouseCoords.y = mousePos.y;
-	}
-
-	function updateZooming(e: WheelEvent) {
-		const scaleBy = 1.1;
-
-		const oldScale = viewportTransform.scale;
-		const mousePos = {
-			x: e.clientX,
-			y: e.clientY
+		const oldScale = stage.scaleX();
+		const pointer = stage.getPointerPosition() ?? {
+			x: 0,
+			y: 0
 		};
 
 		const mousePointTo = {
-			x: (mousePos.x - viewportTransform.x) / oldScale,
-			y: (mousePos.y - viewportTransform.y) / oldScale
+			x: (pointer.x - stage.x()) / oldScale,
+			y: (pointer.y - stage.y()) / oldScale
 		};
 
-		let direction = e.deltaY > 0 ? -1 : 1;
-		if (e.ctrlKey) {
+		// scroll up is zoom in
+		let direction = e.evt.deltaY > 0 ? -1 : 1;
+		if (e.evt.ctrlKey) {
 			direction = -direction;
 		}
 
 		const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+		stage.scale({ x: newScale, y: newScale });
+
 		const newPos = {
-			x: mousePos.x - mousePointTo.x * newScale,
-			y: mousePos.y - mousePointTo.y * newScale
+			x: pointer.x - mousePointTo.x * newScale,
+			y: pointer.y - mousePointTo.y * newScale
 		};
-
-		viewportTransform.scale = newScale;
-		viewportTransform.x = newPos.x;
-		viewportTransform.y = newPos.y;
+		stage.position(newPos);
 	}
-
-	onMount(() => {
-		if (!canvas) return;
-
-		function resizeCanvas() {
-			if (canvas) {
-				canvas.width = window.innerWidth;
-				canvas.height = window.innerHeight;
-			}
-		}
-
-		window.addEventListener('resize', resizeCanvas);
-		resizeCanvas();
-		render();
-
-		return () => {
-			window.removeEventListener('resize', resizeCanvas);
-		};
-	});
 </script>
 
-<canvas
-	bind:this={canvas}
-	onmousedown={(e) => {
-		isMouseDown = true;
-		prevMouseCoords.x = e.clientX;
-		prevMouseCoords.y = e.clientY;
-	}}
-	onmousemove={(e) => {
-		if (isMouseDown && isDragging) {
-			updatePanning(e);
-			render();
-		}
-	}}
-	onmouseup={() => {
-		isMouseDown = false;
-	}}
-	onwheel={(e) => {
-		if (isZooming) {
-			updateZooming(e);
-			render();
-		}
-	}}
-></canvas>
+<svelte:window bind:innerWidth={stageConfig.width} bind:innerHeight={stageConfig.height} />
+
+<Stage
+	bind:this={stageRef}
+	width={stageConfig.width}
+	height={stageConfig.height}
+	draggable={isPanning}
+	onwheel={updateZooming}
+>
+	<Layer>
+		<Rect
+			width={100}
+			height={100}
+			fill="#27F598"
+			x={window.innerWidth / 2 - 50}
+			y={window.innerHeight / 2 - 50}
+		/>
+	</Layer>
+</Stage>
 
 <div class="absolute top-4 left-4 z-100 flex items-stretch gap-2">
-	<Button variant={isDragging ? 'default' : 'outline'} onclick={() => (isDragging = !isDragging)}>
+	<Button variant={isPanning ? 'default' : 'outline'} onclick={() => (isPanning = !isPanning)}>
 		<HandIcon />
 	</Button>
 
