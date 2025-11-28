@@ -4,11 +4,16 @@
 	import { Layer, Stage, type KonvaWheelEvent } from 'svelte-konva';
 	import ImagePicker from './image-picker.svelte';
 	import ImageView from './image-view.svelte';
+	import FiltersDropdown from './filters-dropdown.svelte';
 
 	let isPanning = $state(false);
 	let isZooming = $state(false);
 
 	let image: HTMLImageElement | null = $state(null);
+	let imageBrightness = $state(1);
+	let imageContrast = $state(0);
+	let imageHue = $state(0);
+	let imageSaturation = $state(0);
 
 	let stageEl: Stage | null = null;
 	const stageConfig = $state({
@@ -104,11 +109,19 @@
 >
 	<Layer>
 		{#if image}
-			<ImageView
-				{image}
-				x={0.5 * (stageConfig.width - image.width)}
-				y={0.5 * (stageConfig.height - image.height)}
-			/>
+			<!-- HACKY WAY TO FIX REPLACING IMAGES WITH DIFFERENT IMAGES -->
+			<!-- FIX IT -->
+			{#key image}
+				<ImageView
+					{image}
+					x={0.5 * (stageConfig.width - image.width)}
+					y={0.5 * (stageConfig.height - image.height)}
+					brightness={imageBrightness}
+					contrast={imageContrast}
+					hue={imageHue}
+					saturation={imageSaturation}
+				/>
+			{/key}
 		{/if}
 	</Layer>
 </Stage>
@@ -124,6 +137,13 @@
 		<ZoomInIcon />
 	</Button>
 
-	<Button onclick={fitToScreen}>Fit to Screen</Button>
-	<Button onclick={resetView}>Reset View</Button>
+	<FiltersDropdown
+		bind:brightness={imageBrightness}
+		bind:contrast={imageContrast}
+		bind:hue={imageHue}
+		bind:saturation={imageSaturation}
+	/>
+
+	<Button onclick={fitToScreen} variant="outline">Fit to Screen</Button>
+	<Button onclick={resetView} variant="outline">Reset View</Button>
 </div>
