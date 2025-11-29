@@ -1,25 +1,27 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { HandIcon, ZoomInIcon } from '@lucide/svelte';
+	import { FileUpIcon, HandIcon, ZoomInIcon } from '@lucide/svelte';
 	import { Layer, Stage, type KonvaWheelEvent } from 'svelte-konva';
 	import ImagePicker from './image-picker.svelte';
 	import ImageView from './image-view.svelte';
 	import FiltersDropdown from './filters-dropdown.svelte';
-
-	let isPanning = $state(false);
-	let isZooming = $state(false);
-
-	let image: HTMLImageElement | null = $state(null);
-	let imageBrightness = $state(1);
-	let imageContrast = $state(0);
-	let imageHue = $state(0);
-	let imageSaturation = $state(0);
+	import type Konva from 'konva';
 
 	let stageEl: Stage | null = null;
 	const stageConfig = $state({
 		width: 0,
 		height: 0
 	});
+	let isPanning = $state(false);
+	let isZooming = $state(false);
+
+	let image: HTMLImageElement | null = $state(null);
+	let imageNode: Konva.Image | null = $state(null);
+
+	let imageBrightness = $state(1);
+	let imageContrast = $state(0);
+	let imageHue = $state(0);
+	let imageSaturation = $state(0);
 
 	function createImage(imageFile: File) {
 		const imageElement = document.createElement('img');
@@ -96,6 +98,29 @@
 			y: 1
 		});
 	}
+
+	function exportImage() {
+		const stageNode = stageEl?.node;
+		if (!imageNode || !stageNode) return;
+
+		const oldStageScale = stageNode.scale();
+
+		stageNode.scale({
+			x: 1,
+			y: 1
+		});
+
+		const dataURL = imageNode.toDataURL();
+
+		stageNode.scale(oldStageScale);
+
+		const link = document.createElement('a');
+		link.download = 'stage.png';
+		link.href = dataURL;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
 </script>
 
 <svelte:window bind:innerWidth={stageConfig.width} bind:innerHeight={stageConfig.height} />
@@ -114,6 +139,7 @@
 			{#key image}
 				<ImageView
 					{image}
+					bind:node={imageNode}
 					x={0.5 * (stageConfig.width - image.width)}
 					y={0.5 * (stageConfig.height - image.height)}
 					brightness={imageBrightness}
@@ -128,6 +154,9 @@
 
 <div class="absolute top-4 left-4 z-100 flex items-stretch gap-2">
 	<ImagePicker onImageAdded={createImage} />
+	<Button onclick={exportImage}>
+		<FileUpIcon />
+	</Button>
 
 	<Button variant={isPanning ? 'default' : 'outline'} onclick={() => (isPanning = !isPanning)}>
 		<HandIcon />

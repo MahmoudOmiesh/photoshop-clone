@@ -2,8 +2,10 @@
 	import Konva from 'konva';
 	import { onMount } from 'svelte';
 	import { Image } from 'svelte-konva';
+
 	interface ImageViewProps {
-		image: CanvasImageSource;
+		node: Konva.Image | null;
+		image: HTMLImageElement;
 		x: number;
 		y: number;
 		brightness: number;
@@ -12,9 +14,14 @@
 		saturation: number;
 	}
 
-	const props: ImageViewProps = $props();
-
 	let imageEl: Image | null = null;
+	let { node = $bindable(), ...props }: ImageViewProps = $props();
+
+	$effect(() => {
+		if (imageEl) {
+			node = imageEl.node;
+		}
+	});
 
 	onMount(() => {
 		if (imageEl) {
