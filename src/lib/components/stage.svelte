@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { FileUpIcon, HandIcon, ZoomInIcon } from '@lucide/svelte';
-	import { Layer, Stage, type KonvaWheelEvent } from 'svelte-konva';
+	import { CheckIcon, CropIcon, FileUpIcon, HandIcon, XIcon, ZoomInIcon } from '@lucide/svelte';
+	import { Layer, Rect, Stage, Transformer, type KonvaWheelEvent } from 'svelte-konva';
 	import ImagePicker from './image-picker.svelte';
 	import ImageView from './image-view.svelte';
 	import FiltersDropdown from './filters-dropdown.svelte';
 	import type Konva from 'konva';
+	import type { IRect } from 'konva/lib/types';
 
 	let stageEl: Stage | null = null;
 	const stageConfig = $state({
@@ -22,6 +23,61 @@
 	let imageContrast = $state(0);
 	let imageHue = $state(0);
 	let imageSaturation = $state(0);
+
+	let isCropping = $state(false);
+	let transformerEl: Transformer | null = $state(null);
+	let cropRectEl: Rect | null = $state(null);
+	let crop: IRect | undefined = $state();
+
+	function enterCropMode() {
+		if (!imageNode || !transformerEl || !cropRectEl) return;
+
+		isCropping = true;
+		transformerEl.node.nodes([cropRectEl.node]);
+	}
+
+	function exitCropMode() {
+		if (!imageNode || !transformerEl || !cropRectEl) return;
+
+		if (!crop) {
+			// reset the selection if there was no previous crop
+			const defaultPosition = imageNode.position();
+
+			cropRectEl.node.scale({
+				x: 1,
+				y: 1
+			});
+			cropRectEl.node.position(defaultPosition);
+		}
+
+		isCropping = false;
+		transformerEl.node.nodes([]);
+	}
+
+	function applyCrop() {
+		if (!imageNode || !transformerEl || !cropRectEl) return;
+
+		const scale = cropRectEl.node.scale();
+		const size = cropRectEl.node.size();
+		const position = cropRectEl.node.position();
+
+		const cropWidth = size.width * scale.x;
+		const cropHeight = size.height * scale.y;
+
+		const imagePosition = imageNode.position();
+
+		const cropX = position.x - imagePosition.x;
+		const cropY = position.y - imagePosition.y;
+
+		crop = {
+			x: cropX,
+			y: cropY,
+			width: cropWidth,
+			height: cropHeight
+		};
+
+		exitCropMode();
+	}
 
 	function createImage(imageFile: File) {
 		const imageElement = document.createElement('img');
@@ -139,6 +195,7 @@
 			{#key image}
 				<ImageView
 					{image}
+					crop={isCropping ? undefined : crop}
 					bind:node={imageNode}
 					x={0.5 * (stageConfig.width - image.width)}
 					y={0.5 * (stageConfig.height - image.height)}
@@ -147,6 +204,18 @@
 					hue={imageHue}
 					saturation={imageSaturation}
 				/>
+
+				<Rect
+					visible={isCropping}
+					bind:this={cropRectEl}
+					width={image?.width}
+					height={image?.height}
+					x={0.5 * (stageConfig.width - (image?.width ?? 0))}
+					y={0.5 * (stageConfig.height - (image?.height ?? 0))}
+					stroke="black"
+					strokeWidth={4}
+				/>
+				<Transformer bind:this={transformerEl} rotateEnabled={false} />
 			{/key}
 		{/if}
 	</Layer>
@@ -172,6 +241,18 @@
 		bind:hue={imageHue}
 		bind:saturation={imageSaturation}
 	/>
+
+	{#if !isCropping}
+		<Button variant={isCropping ? 'default' : 'outline'} onclick={enterCropMode} disabled={!image}>
+			<CropIcon />
+		</Button>
+	{/if}
+	{#if isCropping}
+		<Button onclick={exitCropMode}>
+			<XIcon />
+		</Button>
+		<Button onclick={applyCrop}><CheckIcon /></Button>
+	{/if}
 
 	<Button onclick={fitToScreen} variant="outline">Fit to Screen</Button>
 	<Button onclick={resetView} variant="outline">Reset View</Button>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Konva from 'konva';
+	import type { IRect } from 'konva/lib/types';
 	import { onMount } from 'svelte';
 	import { Image } from 'svelte-konva';
 
@@ -12,6 +13,7 @@
 		contrast: number;
 		hue: number;
 		saturation: number;
+		crop?: IRect;
 	}
 
 	let imageEl: Image | null = null;
@@ -20,6 +22,14 @@
 	$effect(() => {
 		if (imageEl) {
 			node = imageEl.node;
+		}
+	});
+
+	$effect(() => {
+		if (imageEl) {
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+			props.crop;
+			imageEl.node.cache();
 		}
 	});
 
@@ -32,6 +42,8 @@
 
 <Image
 	{...props}
+	width={props.crop ? props.crop.width : props.image.width}
+	height={props.crop ? props.crop.height : props.image.height}
 	bind:this={imageEl}
 	filters={[Konva.Filters.Brightness, Konva.Filters.Contrast, Konva.Filters.HSL]}
 />
