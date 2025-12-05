@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '@fontsource-variable/plus-jakarta-sans';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 
@@ -9,4 +10,6 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<div class="min-h-screen w-screen flex flex-col">
+	{@render children()}
+</div>

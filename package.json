@@ -42,6 +42,7 @@
 		"vite-plugin-devtools-json": "^1.0.0"
 	},
 	"dependencies": {
+		"@fontsource-variable/plus-jakarta-sans": "^5.2.8",
 		"konva": "^10.0.12",
 		"svelte-konva": "^1.0.1"
 	}
