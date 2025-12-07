@@ -10,6 +10,6 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen w-screen flex flex-col">
+<div class="h-screen w-screen flex flex-col">
 	{@render children()}
 </div>
