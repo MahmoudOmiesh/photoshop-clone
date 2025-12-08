@@ -20,6 +20,10 @@ export class Renderer {
 
 	private width: number = 0;
 	private height: number = 0;
+	private offsetX: number = 0;
+	private offsetY: number = 0;
+
+	private shouldRerender = false;
 
 	constructor(displayCanvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement) {
 		this.displayCanvas = displayCanvas;
@@ -37,24 +41,56 @@ export class Renderer {
 		this.displayCanvasContext = displayCanvasContext;
 		this.overlayCanvasContext = overlayCanvasContext;
 		this.offscreenCanvasContext = offscreenCanvasContext;
+
+		// start render loop
+		requestAnimationFrame(() => {
+			this.render();
+		});
 	}
 
 	private drawCompositionToOffscreenCanvas() {
 		// do some other shit
 	}
 
-	render() {
-		// do shit
+	private render() {
+		if (this.shouldRerender) {
+			console.log('RENDER');
+			const displayCtx = this.displayCanvasContext;
+
+			displayCtx.clearRect(0, 0, this.width, this.height);
+
+			displayCtx.save();
+			const transformMatrix = this.viewport.getTransformMatrix();
+
+			displayCtx.setTransform(
+				transformMatrix.a,
+				transformMatrix.b,
+				transformMatrix.c,
+				transformMatrix.d,
+				transformMatrix.e,
+				transformMatrix.f
+			);
+
+			displayCtx.fillStyle = 'red';
+			displayCtx.fillRect(this.width / 2 - 50, this.height / 2 - 50, 100, 100);
+
+			displayCtx.restore();
+
+			this.shouldRerender = false;
+		}
+
+		requestAnimationFrame(() => {
+			this.render();
+		});
 	}
 
-	setDimensions(dimensions: { width: number; height: number }) {
-		const { width, height } = dimensions;
-		if (width === this.width && height === this.height) {
-			return;
-		}
+	setDimensions(dimensions: { width: number; height: number; offsetX: number; offsetY: number }) {
+		const { width, height, offsetX, offsetY } = dimensions;
 
 		this.width = width;
 		this.height = height;
+		this.offsetX = offsetX;
+		this.offsetY = offsetY;
 		this.displayCanvas.width = width;
 		this.displayCanvas.height = height;
 		this.displayCanvas.style.width = `${width}px`;
@@ -65,6 +101,17 @@ export class Renderer {
 		this.overlayCanvas.style.height = `${height}px`;
 		this.offscreenCanvas.width = width;
 		this.offscreenCanvas.height = height;
-		this.viewport.setContainerDimensions({ width, height });
+		this.viewport.setContainerDimensions({ width, height, offsetX, offsetY });
+
+		// rerender when changing dimensions
+		this.requestRerender();
+	}
+
+	requestRerender() {
+		this.shouldRerender = true;
+	}
+
+	getViewport() {
+		return this.viewport;
 	}
 }

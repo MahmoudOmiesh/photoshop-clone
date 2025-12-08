@@ -1,3 +1,5 @@
+import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
+
 interface ViewportConfig {
 	minScale: number;
 	maxScale: number;
@@ -31,14 +33,16 @@ const PRESET_SCALE_STEPS = [
 
 export class Viewport {
 	// in screen pixels
-	private offsetX: number = 0;
-	private offsetY: number = 0;
+	private offsetX = 0;
+	private offsetY = 0;
 
 	// 1 is no zoom, 2 is 2x zoom, etc.
-	private zoom: number = 1;
+	private scale = 1;
 
-	private containerWidth: number = 0;
-	private containerHeight: number = 0;
+	private containerWidth = 0;
+	private containerHeight = 0;
+	private containerOffsetX = 0;
+	private containerOffsetY = 0;
 
 	private config: ViewportConfig;
 
@@ -54,27 +58,44 @@ export class Viewport {
 	}
 
 	applyZoom({ scale, pivotX, pivotY }: TargetScale) {
-		// do stuff
+		if (pivotX != null && pivotY != null) {
+			const viewportPoint = this.screenToViewport({
+				x: pivotX,
+				y: pivotY
+			});
+
+			this.scale = scale;
+
+			const newScreenPoint = this.viewportToScreen({
+				x: viewportPoint.x,
+				y: viewportPoint.y
+			});
+
+			this.offsetX += newScreenPoint.x - pivotX;
+			this.offsetY += newScreenPoint.y - pivotY;
+		} else {
+			this.scale = scale;
+		}
 
 		this._clamp();
 	}
 
 	zoomIn(pivot: Omit<TargetScale, 'scale'>) {
-		const nextStep = PRESET_SCALE_STEPS.find((step) => step > this.zoom);
+		const nextStep = PRESET_SCALE_STEPS.find((step) => step > this.scale);
 		if (nextStep) {
 			this.applyZoom({ scale: nextStep, ...pivot });
 		}
 	}
 
 	zoomOut(pivot: Omit<TargetScale, 'scale'>) {
-		const prevSteps = PRESET_SCALE_STEPS.filter((step) => step < this.zoom);
+		const prevSteps = PRESET_SCALE_STEPS.filter((step) => step < this.scale);
 		if (prevSteps.length > 0) {
 			this.applyZoom({ scale: prevSteps[prevSteps.length - 1]!, ...pivot });
 		}
 	}
 
 	getZoomPercentage() {
-		return `${this.zoom * 100}%`;
+		return `${this.scale * 100}%`;
 	}
 
 	fillScreen() {
@@ -85,26 +106,51 @@ export class Viewport {
 		// TODO: this will need the composition width and height
 	}
 
-	screenToViewport({ x, y }: { x: number; y: number }) {
-		// convert screen coordinates to viewport coordinates
+	screenToViewport(point: { x: number; y: number }) {
+		const inverseMatrix = inverse(this.getTransformMatrix());
+		return applyToPoint(inverseMatrix, {
+			x: point.x - this.containerOffsetX,
+			y: point.y - this.containerOffsetY
+		});
 	}
 
-	viewportToScreen({ x, y }: { x: number; y: number }) {
-		// convert viewport coordinates to screen coordinates
+	viewportToScreen(point: { x: number; y: number }) {
+		const matrix = this.getTransformMatrix();
+		const containerPoint = applyToPoint(matrix, point);
+		return {
+			x: containerPoint.x + this.containerOffsetX,
+			y: containerPoint.y + this.containerOffsetY
+		};
 	}
 
-	getTransformationMatrix() {
-		// do some things
+	getTransformMatrix() {
+		const centerX = this.containerWidth / 2;
+		const centerY = this.containerHeight / 2;
+
+		const matrix = compose(
+			translate(centerX + this.offsetX, centerY + this.offsetY),
+			scale(this.scale),
+			translate(-centerX, -centerY)
+		);
+
+		return matrix;
 	}
 
-	setContainerDimensions(dimensions: { width: number; height: number }) {
-		const { width, height } = dimensions;
+	setContainerDimensions(dimensions: {
+		width: number;
+		height: number;
+		offsetX: number;
+		offsetY: number;
+	}) {
+		const { width, height, offsetX, offsetY } = dimensions;
 		this.containerWidth = width;
 		this.containerHeight = height;
+		this.containerOffsetX = offsetX;
+		this.containerOffsetY = offsetY;
 	}
 
 	private _clamp() {
-		this.zoom = Math.max(this.config.minScale, Math.min(this.config.maxScale, this.zoom));
+		this.scale = Math.max(this.config.minScale, Math.min(this.config.maxScale, this.scale));
 		this.offsetX = Math.max(this.config.minOffsetX, Math.min(this.config.maxOffsetX, this.offsetX));
 		this.offsetY = Math.max(this.config.minOffsetY, Math.min(this.config.maxOffsetY, this.offsetY));
 	}

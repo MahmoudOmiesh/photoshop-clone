@@ -3,8 +3,11 @@
 	import { assert } from '$lib/utils';
 	import { onMount } from 'svelte';
 
-	const ro = (node: HTMLElement, callback: (entry: ResizeObserverEntry) => void) => {
-		const ro = new ResizeObserver(([entry]) => callback(entry));
+	const ro = (
+		node: HTMLElement,
+		callback: (entry: ResizeObserverEntry, node: HTMLElement) => void
+	) => {
+		const ro = new ResizeObserver(([entry]) => callback(entry, node));
 		ro.observe(node);
 		return {
 			destroy: () => ro.disconnect()
@@ -24,19 +27,90 @@
 
 		renderer = new Renderer(displayCanvas, overlayCanvas);
 	});
+
+	// let isPanning = false;
+	// let lastMousePos = { x: 0, y: 0 };
+
+	type PEvent = PointerEvent & {
+		currentTarget: EventTarget & HTMLDivElement;
+	};
+
+	function onpointerdown(e: PEvent) {
+		// isPanning = true;
+		// lastMousePos = {
+		// 	x: e.clientX,
+		// 	y: e.clientY
+		// };
+		//
+		assert(renderer);
+
+		// console.log(
+		// 	renderer.getViewport().screenToViewport({
+		// 		x: e.clientX,
+		// 		y: e.clientY
+		// 	})
+		// );
+		//
+
+		const init = {
+			x: e.clientX,
+			y: e.clientY
+		};
+
+		// console.log('INIT', init);
+		// const vp = renderer.getViewport();
+		// const vpc = vp.screenToViewport(init);
+		// console.log('VIEWPORT', vpc);
+		// const scc = vp.viewportToScreen(vpc);
+		// console.log('FINAL', scc);
+		renderer.getViewport().zoomIn({
+			pivotX: e.clientX,
+			pivotY: e.clientY
+		});
+		renderer.requestRerender();
+	}
+
+	// function onpointermove(e: PEvent) {
+	// 	if (!isPanning) return;
+	// 	assert(renderer);
+
+	// 	const deltaX = e.clientX - lastMousePos.x;
+	// 	const deltaY = e.clientY - lastMousePos.y;
+
+	// 	renderer.getViewport().pan({
+	// 		x: deltaX,
+	// 		y: deltaY
+	// 	});
+	// 	renderer.requestRerender();
+
+	// 	lastMousePos = {
+	// 		x: e.clientX,
+	// 		y: e.clientY
+	// 	};
+	// }
+
+	// function onpointerup() {
+	// 	isPanning = false;
+	// }
 </script>
 
 <div
-	class="flex-1 relative"
+	class="flex-1 relative border"
 	bind:this={canvasContainer}
-	use:ro={({ contentRect }) => {
+	use:ro={(entry, node) => {
 		assert(renderer);
+		const { contentRect } = entry;
+		// I don't like this
+		const { top, left } = node.getBoundingClientRect();
 
 		renderer.setDimensions({
 			width: Math.floor(contentRect.width),
-			height: Math.floor(contentRect.height)
+			height: Math.floor(contentRect.height),
+			offsetX: left,
+			offsetY: top
 		});
 	}}
+	{onpointerdown}
 >
 	<canvas bind:this={displayCanvas} class="absolute top-0 left-0"></canvas>
 	<canvas bind:this={overlayCanvas} class="absolute top-0 left-0 pointer-events-none"></canvas>

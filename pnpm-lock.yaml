@@ -20,6 +20,9 @@ importers:
       svelte-konva:
         specifier: ^1.0.1
         version: 1.0.1(konva@10.0.12)(svelte@5.43.14)
+      transformation-matrix:
+        specifier: ^3.1.0
+        version: 3.1.0
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.0
@@ -1373,6 +1376,9 @@ packages:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
     engines: {node: '>=6'}
 
+  transformation-matrix@3.1.0:
+    resolution: {integrity: sha512-oYubRWTi2tYFHAL2J8DLvPIqIYcYZ0fSOi2vmSy042Ho4jBW2ce6VP7QfD44t65WQz6bw5w1Pk22J7lcUpaTKA==}
+
   ts-api-utils@2.1.0:
     resolution: {integrity: sha512-CUgTZL1irw8u29bzrOD/nH85jqyc74D6SshFgujOIA7osm2Rz7dYH77agkx7H4FBNxDq7Cjf+IjaX/8zwFW+ZQ==}
     engines: {node: '>=18.12'}
@@ -2635,6 +2641,8 @@ snapshots:
       is-number: 7.0.0
 
   totalist@3.0.1: {}
+
+  transformation-matrix@3.1.0: {}
 
   ts-api-utils@2.1.0(typescript@5.9.3):
     dependencies:
