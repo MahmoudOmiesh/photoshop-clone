@@ -25,8 +25,8 @@ const DEFAULT_CONFIG: ViewportConfig = {
 };
 
 const PRESET_SCALE_STEPS = [
-	0.01, 0.02, 0.03, 0.04, 0.05, 0.0625, 0.0833, 0.125, 0.1667, 0.25, 0.3333, 0.5, 0.6667, 1, 2, 3,
-	4, 5, 6, 7, 8, 12, 16, 24, 32, 48, 64, 128
+	0.01, 0.02, 0.03, 0.04, 0.05, 0.0625, 0.0833, 0.125, 0.1667, 0.25, 0.3333, 0.5, 0.6667, 1, 1.25,
+	1.75, 2, 2.5, 3, 4, 5, 6, 7, 8, 12, 16, 24, 32, 48, 64, 128
 ];
 
 // not sure if will need rotation, so not adding it for now
@@ -41,8 +41,6 @@ export class Viewport {
 
 	private containerWidth = 0;
 	private containerHeight = 0;
-	private containerOffsetX = 0;
-	private containerOffsetY = 0;
 
 	private config: ViewportConfig;
 
@@ -57,7 +55,7 @@ export class Viewport {
 		this._clamp();
 	}
 
-	applyZoom({ scale, pivotX, pivotY }: TargetScale) {
+	private applyZoom({ scale, pivotX, pivotY }: TargetScale) {
 		if (pivotX != null && pivotY != null) {
 			const viewportPoint = this.screenToViewport({
 				x: pivotX,
@@ -94,6 +92,13 @@ export class Viewport {
 		}
 	}
 
+	zoomBy({ factor, ...pivot }: { factor: number } & Omit<TargetScale, 'scale'>) {
+		this.applyZoom({
+			scale: this.scale * factor,
+			...pivot
+		});
+	}
+
 	getZoomPercentage() {
 		return `${this.scale * 100}%`;
 	}
@@ -109,8 +114,8 @@ export class Viewport {
 	screenToViewport(point: { x: number; y: number }) {
 		const inverseMatrix = inverse(this.getTransformMatrix());
 		return applyToPoint(inverseMatrix, {
-			x: point.x - this.containerOffsetX,
-			y: point.y - this.containerOffsetY
+			x: point.x,
+			y: point.y
 		});
 	}
 
@@ -118,8 +123,8 @@ export class Viewport {
 		const matrix = this.getTransformMatrix();
 		const containerPoint = applyToPoint(matrix, point);
 		return {
-			x: containerPoint.x + this.containerOffsetX,
-			y: containerPoint.y + this.containerOffsetY
+			x: containerPoint.x,
+			y: containerPoint.y
 		};
 	}
 
@@ -136,17 +141,10 @@ export class Viewport {
 		return matrix;
 	}
 
-	setContainerDimensions(dimensions: {
-		width: number;
-		height: number;
-		offsetX: number;
-		offsetY: number;
-	}) {
-		const { width, height, offsetX, offsetY } = dimensions;
+	setContainerDimensions(dimensions: { width: number; height: number }) {
+		const { width, height } = dimensions;
 		this.containerWidth = width;
 		this.containerHeight = height;
-		this.containerOffsetX = offsetX;
-		this.containerOffsetY = offsetY;
 	}
 
 	private _clamp() {

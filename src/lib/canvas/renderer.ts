@@ -20,8 +20,6 @@ export class Renderer {
 
 	private width: number = 0;
 	private height: number = 0;
-	private offsetX: number = 0;
-	private offsetY: number = 0;
 
 	private shouldRerender = false;
 
@@ -84,13 +82,11 @@ export class Renderer {
 		});
 	}
 
-	setDimensions(dimensions: { width: number; height: number; offsetX: number; offsetY: number }) {
-		const { width, height, offsetX, offsetY } = dimensions;
+	setDimensions(dimensions: { width: number; height: number }) {
+		const { width, height } = dimensions;
 
 		this.width = width;
 		this.height = height;
-		this.offsetX = offsetX;
-		this.offsetY = offsetY;
 		this.displayCanvas.width = width;
 		this.displayCanvas.height = height;
 		this.displayCanvas.style.width = `${width}px`;
@@ -101,7 +97,7 @@ export class Renderer {
 		this.overlayCanvas.style.height = `${height}px`;
 		this.offscreenCanvas.width = width;
 		this.offscreenCanvas.height = height;
-		this.viewport.setContainerDimensions({ width, height, offsetX, offsetY });
+		this.viewport.setContainerDimensions({ width, height });
 
 		// rerender when changing dimensions
 		this.requestRerender();
