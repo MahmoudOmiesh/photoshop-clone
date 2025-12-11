@@ -147,6 +147,10 @@ export class Viewport {
 		this.containerHeight = height;
 	}
 
+	getScale() {
+		return this.scale;
+	}
+
 	private _clamp() {
 		this.scale = Math.max(this.config.minScale, Math.min(this.config.maxScale, this.scale));
 		this.offsetX = Math.max(this.config.minOffsetX, Math.min(this.config.maxOffsetX, this.offsetX));
