@@ -71,6 +71,9 @@ export class Renderer {
 		displayCtx.clearRect(0, 0, this.width, this.height);
 
 		displayCtx.save();
+
+		this.clipViewportInsets();
+
 		const transformMatrix = this.viewport.getTransformMatrix();
 
 		displayCtx.setTransform(
@@ -102,22 +105,47 @@ export class Renderer {
 		});
 	}
 
+	private updateViewportInsets() {
+		const rulerSize = this.rulerEnabled ? this.ruler.getSize() : 0;
+		this.viewport.setInsets({
+			top: rulerSize,
+			left: rulerSize
+		});
+	}
+
+	private clipViewportInsets() {
+		const insets = this.viewport.getInsets();
+		this.displayCanvasContext.beginPath();
+		this.displayCanvasContext.rect(
+			insets.left,
+			insets.top,
+			this.width - insets.left,
+			this.height - insets.top
+		);
+		this.displayCanvasContext.clip();
+	}
+
 	setDimensions(dimensions: { width: number; height: number }) {
 		const { width, height } = dimensions;
 
 		this.width = width;
 		this.height = height;
+
 		this.displayCanvas.width = width;
 		this.displayCanvas.height = height;
 		this.displayCanvas.style.width = `${width}px`;
 		this.displayCanvas.style.height = `${height}px`;
+
 		this.overlayCanvas.width = width;
 		this.overlayCanvas.height = height;
 		this.overlayCanvas.style.width = `${width}px`;
 		this.overlayCanvas.style.height = `${height}px`;
+
 		this.offscreenCanvas.width = width;
 		this.offscreenCanvas.height = height;
+
 		this.viewport.setContainerDimensions({ width, height });
+		this.updateViewportInsets();
 
 		// rerender when changing dimensions
 		this.requestRerender();

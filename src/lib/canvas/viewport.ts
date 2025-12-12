@@ -42,6 +42,9 @@ export class Viewport {
 	private containerWidth = 0;
 	private containerHeight = 0;
 
+	private insetTop = 0;
+	private insetLeft = 0;
+
 	private config: ViewportConfig;
 
 	constructor(config?: Partial<ViewportConfig>) {
@@ -129,13 +132,9 @@ export class Viewport {
 	}
 
 	getTransformMatrix() {
-		const centerX = this.containerWidth / 2;
-		const centerY = this.containerHeight / 2;
-
 		const matrix = compose(
-			translate(centerX + this.offsetX, centerY + this.offsetY),
-			scale(this.scale),
-			translate(-centerX, -centerY)
+			translate(this.offsetX + this.insetLeft, this.offsetY + this.insetTop),
+			scale(this.scale)
 		);
 
 		return matrix;
@@ -145,6 +144,18 @@ export class Viewport {
 		const { width, height } = dimensions;
 		this.containerWidth = width;
 		this.containerHeight = height;
+	}
+
+	setInsets(insets: { top: number; left: number }) {
+		this.insetTop = insets.top;
+		this.insetLeft = insets.left;
+	}
+
+	getInsets() {
+		return {
+			top: this.insetTop,
+			left: this.insetLeft
+		};
 	}
 
 	getScale() {
