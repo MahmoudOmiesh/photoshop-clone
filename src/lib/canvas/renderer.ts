@@ -3,9 +3,8 @@
 // 2 - overlay canvas which will be used for any overlays like rulers, selection, etc.
 // 3 - it will use an offscreen canvas to render the composition and then copy the result to the display canvas
 
+import { Ruler } from './ruler';
 import { Viewport } from './viewport';
-
-const NICE_STEPS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 
 export class Renderer {
 	private displayCanvas: HTMLCanvasElement;
@@ -25,6 +24,7 @@ export class Renderer {
 
 	private shouldRerender = false;
 
+	private ruler: Ruler = new Ruler(this.viewport);
 	rulerEnabled = true;
 
 	constructor(displayCanvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement) {
@@ -59,43 +59,8 @@ export class Renderer {
 		overlayCtx.clearRect(0, 0, this.width, this.height);
 
 		if (this.rulerEnabled) {
-			const topLeft = this.viewport.screenToViewport({
-				x: 0,
-				y: 0
-			});
-			const topRight = this.viewport.screenToViewport({
-				x: this.width,
-				y: 0
-			});
-			const scale = this.viewport.getScale();
-
-			// 100px between major ticks
-			const targetScreenStep = 100;
-			const rawStep = targetScreenStep / scale;
-			const majorStep = NICE_STEPS.find((x) => x >= rawStep) ?? NICE_STEPS[NICE_STEPS.length - 1];
-
-			const minorDivisions = 10;
-			const minorStep = majorStep / minorDivisions;
-
-			const beginning = Math.ceil(topLeft.x / minorStep) * minorStep;
-
-			overlayCtx.font = '12px monospace';
-			overlayCtx.fillStyle = '#e2e8f0';
-
-			for (let coord = beginning; coord <= topRight.x; coord += minorStep) {
-				const screenPos = this.viewport.viewportToScreen({ x: coord, y: 0 });
-
-				const isMajor = Math.abs(coord % majorStep) < 0.0001;
-
-				if (isMajor) {
-					overlayCtx.fillRect(screenPos.x, 0, 1, 17);
-					overlayCtx.fillText(String(coord), screenPos.x + 4, 10);
-				} else {
-					overlayCtx.fillRect(screenPos.x, 14, 1, 3);
-				}
-			}
-
-			overlayCtx.fillRect(0, 17, this.width, 1);
+			const rulerBitmap = this.ruler.getImageBitmap({ width: this.width, height: this.height });
+			overlayCtx.drawImage(rulerBitmap, 0, 0);
 		}
 	}
 
