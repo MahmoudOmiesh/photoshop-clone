@@ -1,24 +1,23 @@
 <script>
+	import { getAllTools, isToolActive, selectTool } from '$lib/tools/tool-store.svelte';
 	import { Button } from './ui/button';
-	import { MousePointer2Icon, HandIcon, SearchIcon } from '@lucide/svelte';
+
+	const tools = getAllTools();
 </script>
 
 <div class="bg-card h-fit m-2 rounded-md">
 	<ul class="flex flex-col gap-2 items-center p-1">
-		<li>
-			<Button variant="ghost" size="icon">
-				<MousePointer2Icon />
-			</Button>
-		</li>
-		<li>
-			<Button variant="ghost" size="icon">
-				<HandIcon />
-			</Button>
-		</li>
-		<li>
-			<Button variant="ghost" size="icon">
-				<SearchIcon />
-			</Button>
-		</li>
+		{#each tools as tool (tool.id)}
+			<li>
+				<Button
+					size="icon"
+					variant={isToolActive(tool.id) ? 'secondary' : 'ghost'}
+					onclick={() => selectTool(tool.id)}
+					title={`${tool.name}${tool.shortcut ? ` (${tool.shortcut.toUpperCase()})` : ''}`}
+				>
+					<tool.icon />
+				</Button>
+			</li>
+		{/each}
 	</ul>
 </div>

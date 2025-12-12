@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Renderer } from '$lib/canvas/renderer';
+	import ToolEventHandler from '$lib/tools/tool-event-handler.svelte';
 	import { assert } from '$lib/utils';
 	import { onMount } from 'svelte';
 
@@ -27,44 +28,6 @@
 
 		renderer = new Renderer(displayCanvas, overlayCanvas);
 	});
-
-	let isPanning = false;
-	let lastMousePos = { x: 0, y: 0 };
-
-	type PEvent = PointerEvent & {
-		currentTarget: EventTarget & HTMLDivElement;
-	};
-
-	function onpointerdown(e: PEvent) {
-		isPanning = true;
-		lastMousePos = {
-			x: e.clientX,
-			y: e.clientY
-		};
-	}
-
-	function onpointermove(e: PEvent) {
-		if (!isPanning) return;
-		assert(renderer);
-
-		const deltaX = e.clientX - lastMousePos.x;
-		const deltaY = e.clientY - lastMousePos.y;
-
-		renderer.getViewport().pan({
-			x: deltaX,
-			y: deltaY
-		});
-		renderer.requestRerender();
-
-		lastMousePos = {
-			x: e.clientX,
-			y: e.clientY
-		};
-	}
-
-	function onpointerup() {
-		isPanning = false;
-	}
 </script>
 
 <div
@@ -78,10 +41,9 @@
 			height: Math.floor(contentRect.height)
 		});
 	}}
-	{onpointerdown}
-	{onpointermove}
-	{onpointerup}
 >
-	<canvas bind:this={displayCanvas} class="absolute top-0 left-0"></canvas>
-	<canvas bind:this={overlayCanvas} class="absolute top-0 left-0 pointer-events-none"></canvas>
+	<ToolEventHandler {renderer}>
+		<canvas bind:this={displayCanvas} class="absolute top-0 left-0"></canvas>
+		<canvas bind:this={overlayCanvas} class="absolute top-0 left-0 pointer-events-none"></canvas>
+	</ToolEventHandler>
 </div>
