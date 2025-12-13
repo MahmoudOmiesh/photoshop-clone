@@ -1,76 +1,78 @@
 import { SvelteMap } from 'svelte/reactivity';
-import { HandTool } from './hand-tool';
-import type { ToolContext } from './types';
-import { assert } from '$lib/utils';
 import type { Tool } from './base-tool';
+import { HandTool } from './hand-tool';
+import { assert } from '$lib/utils';
 import type { Renderer } from '$lib/canvas/renderer';
+import type { ToolContext } from './types';
+import { getContext, setContext } from 'svelte';
+import { MockTool } from './mock-tool';
 
-const ALL_TOOLS = [new HandTool()];
+const ALL_TOOLS = [new HandTool(), new MockTool()];
 
-const tools = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.id, t]));
+export class ToolStore {
+	private readonly toolsMap = new SvelteMap<string, Tool>(ALL_TOOLS.map((tool) => [tool.id, tool]));
+	private toolOptionsMap = new SvelteMap<string, Record<string, unknown>>(
+		ALL_TOOLS.map((tool) => {
+			const defaults: Record<string, unknown> = {};
+			tool.options.map((option) => {
+				defaults[option.key] = option.default;
+			});
+			return [tool.id, defaults];
+		})
+	);
 
-let currentToolId = $state(ALL_TOOLS[0].id);
-let temporaryToolId = $state<string | null>(null);
-const toolOptions = new SvelteMap<string, Record<string, unknown>>();
+	private currentToolId = $state(ALL_TOOLS[0].id);
+	private temporaryToolId = $state<string | null>(null);
 
-// Getters
-export function getCurrentTool() {
-	const activeId = temporaryToolId ?? currentToolId;
-	const tool = tools.get(activeId);
-
-	assert(tool);
-	return tool;
-}
-
-export function getAllTools() {
-	return Array.from(tools.values());
-}
-
-export function getCurrentToolId() {
-	return temporaryToolId ?? currentToolId;
-}
-
-export function isToolActive(toolId: string) {
-	return getCurrentToolId() === toolId;
-}
-
-// Actions
-export function selectTool(toolId: string) {
-	const nextTool = tools.get(toolId);
-
-	assert(nextTool);
-
-	if (!toolOptions.get(toolId)) {
-		const defaults: Record<string, unknown> = {};
-		nextTool.options.forEach((option) => {
-			defaults[option.key] = option.default;
-		});
-		toolOptions.set(toolId, defaults);
+	get activeToolId() {
+		return this.temporaryToolId ?? this.currentToolId;
 	}
 
-	currentToolId = toolId;
+	get activeTool() {
+		return this.toolsMap.get(this.activeToolId)!;
+	}
+
+	get activeToolOptions() {
+		return this.toolOptionsMap.get(this.activeToolId)!;
+	}
+
+	get allTools() {
+		return Array.from(this.toolsMap.values());
+	}
+
+	isToolActive(toolId: string) {
+		return this.activeToolId === toolId;
+	}
+
+	selectTool(toolId: string) {
+		const nextTool = this.toolsMap.get(toolId);
+		assert(nextTool);
+		this.currentToolId = toolId;
+	}
+
+	setToolOption(toolId: string, key: string, value: unknown) {
+		const currentOptions = this.toolOptionsMap.get(toolId);
+		assert(currentOptions);
+		this.toolOptionsMap.set(toolId, { ...currentOptions, [key]: value });
+	}
+
+	createToolContext(renderer: Renderer): ToolContext {
+		return {
+			renderer,
+			getOptionValue: <T>(key: string): T => {
+				return this.activeToolOptions[key] as T;
+			}
+		};
+	}
 }
 
-export function setTemporaryTool(toolId: string | null) {
-	temporaryToolId = toolId;
+const DEFAULT_KEY = '$_tool_store';
+
+export function getToolStore(key = DEFAULT_KEY) {
+	return getContext<ToolStore>(key);
 }
 
-export function getToolOptions(toolId: string) {
-	return toolOptions.get(toolId) ?? {};
-}
-
-export function setToolOption(toolId: string, key: string, value: unknown) {
-	const currentOptions = toolOptions.get(toolId);
-	assert(currentOptions);
-	toolOptions.set(toolId, { ...currentOptions, [key]: value });
-}
-
-export function createToolContext(renderer: Renderer): ToolContext {
-	return {
-		renderer,
-		getOptionValue<T>(key: string): T {
-			const options = getToolOptions(getCurrentToolId());
-			return options[key] as T;
-		}
-	};
+export function setToolStore(key = DEFAULT_KEY) {
+	const toolStore = new ToolStore();
+	return setContext(key, toolStore);
 }

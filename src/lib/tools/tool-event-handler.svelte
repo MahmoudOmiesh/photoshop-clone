@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Renderer } from '$lib/canvas/renderer';
+	import { Renderer } from '$lib/canvas/renderer';
 	import type { Snippet } from 'svelte';
-	import { createToolContext, getCurrentTool } from './tool-store.svelte';
 	import type { PointerState } from './types';
 	import { assert } from '$lib/utils';
+	import { getToolStore } from './tool-store.svelte';
 
 	interface Props {
 		renderer: Renderer | null;
@@ -11,9 +11,9 @@
 	}
 
 	const { renderer, children }: Props = $props();
-	const currentTool = $derived(getCurrentTool());
-	const cursorStyle = $derived(getCurrentTool().cursor ?? 'default');
-	const toolContext = $derived(renderer ? createToolContext(renderer) : null);
+
+	const toolStore = getToolStore();
+	const toolContext = $derived(renderer ? toolStore.createToolContext(renderer) : null);
 
 	function createPointerState(e: PointerEvent): PointerState {
 		return {
@@ -34,27 +34,27 @@
 		assert(toolContext);
 
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		currentTool.onPointerDown?.(toolContext, createPointerState(e));
+		toolStore.activeTool.onPointerDown?.(toolContext, createPointerState(e));
 	}
 
 	function onpointermove(e: PointerEvent) {
 		assert(toolContext);
 
-		currentTool.onPointerMove?.(toolContext, createPointerState(e));
+		toolStore.activeTool.onPointerMove?.(toolContext, createPointerState(e));
 	}
 
 	function onpointerup(e: PointerEvent) {
 		assert(toolContext);
 
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-		currentTool.onPointerUp?.(toolContext, createPointerState(e));
+		toolStore.activeTool.onPointerUp?.(toolContext, createPointerState(e));
 	}
 
 	function onwheel(e: WheelEvent) {
 		assert(toolContext);
 
 		e.preventDefault();
-		currentTool?.onWheel?.(
+		toolStore.activeTool?.onWheel?.(
 			toolContext,
 			{
 				x: e.offsetX,
@@ -70,7 +70,7 @@
 	function onkeydown(e: KeyboardEvent) {
 		assert(toolContext);
 
-		currentTool.onKeyDown?.(toolContext, e.key, {
+		activeTool.onKeyDown?.(toolContext, e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
 			ctrl: e.ctrlKey,
@@ -81,7 +81,7 @@
 	function onkeyup(e: KeyboardEvent) {
 		assert(toolContext);
 
-		currentTool.onKeyUp?.(toolContext, e.key, {
+		toolStore.activeTool.onKeyUp?.(toolContext, e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
 			ctrl: e.ctrlKey,
@@ -92,6 +92,12 @@
 
 <svelte:window {onkeydown} {onkeyup} />
 
-<div style:cursor={cursorStyle} {onpointerdown} {onpointermove} {onpointerup} {onwheel}>
+<div
+	style:cursor={toolStore.activeTool.cursor ?? 'default'}
+	{onpointerdown}
+	{onpointermove}
+	{onpointerup}
+	{onwheel}
+>
 	{@render children()}
 </div>
