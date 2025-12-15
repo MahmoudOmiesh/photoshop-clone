@@ -70,7 +70,7 @@
 	function onkeydown(e: KeyboardEvent) {
 		assert(toolContext);
 
-		activeTool.onKeyDown?.(toolContext, e.key, {
+		toolStore.activeTool.onKeyDown?.(toolContext, e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
 			ctrl: e.ctrlKey,
@@ -93,7 +93,7 @@
 <svelte:window {onkeydown} {onkeyup} />
 
 <div
-	style:cursor={toolStore.activeTool.cursor ?? 'default'}
+	style:cursor={toolStore.cursorManager.cursor}
 	{onpointerdown}
 	{onpointermove}
 	{onpointerup}

@@ -9,10 +9,11 @@ export abstract class Tool {
 	abstract options: ToolOption[];
 
 	shortcut?: string;
-	cursor?: string;
 
-	// onActivate?(ctx: ToolContext): void;
-	// onDeactivate?(ctx: ToolContext): void;
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	getBaseCursor(_: Record<string, unknown>) {
+		return 'default';
+	}
 
 	onPointerDown?(ctx: ToolContext, pointer: PointerState): void;
 	onPointerMove?(ctx: ToolContext, pointer: PointerState): void;

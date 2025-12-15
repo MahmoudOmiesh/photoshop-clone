@@ -32,8 +32,15 @@ export type ToolOption =
 			default: string;
 	  };
 
+export interface CursorContext {
+	setBase: (cursor: string) => void;
+	setOverride: (cursor: string) => void;
+	clearOverride: () => void;
+}
+
 export interface ToolContext {
 	renderer: Renderer;
+	cursorManager: CursorContext;
 	getOptionValue: <T>(key: string) => T;
 }
 

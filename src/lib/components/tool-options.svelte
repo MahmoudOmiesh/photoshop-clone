@@ -5,7 +5,7 @@
 	const toolStore = getToolStore();
 </script>
 
-<div class="bg-card px-3 py-1 w-full flex items-center gap-4">
+<div class="bg-card px-3 py-1 w-full flex items-center gap-4 min-h-12">
 	<div class="flex items-center gap-2">
 		<svelte:component this={toolStore.activeTool.icon} class="size-4" />
 		{toolStore.activeTool.name}
@@ -38,7 +38,7 @@
 				</label>
 			{:else if option.type === 'button-group'}
 				<div class="flex items-center gap-1">
-					<span class="text-sm mr-1">{option.label}:</span>
+					<span class="text-sm">{option.label}:</span>
 					{#each option.options as opt (opt.value)}
 						<Button
 							variant={toolStore.activeToolOptions[option.key] === opt.value
@@ -48,7 +48,7 @@
 							onclick={() =>
 								toolStore.setToolOption(toolStore.activeTool.id, option.key, opt.value)}
 						>
-							{opt.label}
+							<opt.icon />
 						</Button>
 					{/each}
 				</div>

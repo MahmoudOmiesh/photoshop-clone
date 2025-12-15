@@ -8,17 +8,22 @@ export class HandTool extends Tool {
 	icon = HandIcon;
 	options: ToolOption[] = [];
 	shortcut = 'h';
-	cursor = 'grab';
+
+	getBaseCursor() {
+		return 'grab';
+	}
 
 	private isDragging = false;
 	private lastPos = { x: 0, y: 0 };
 
-	onPointerDown(_: ToolContext, pointer: PointerState) {
+	onPointerDown(ctx: ToolContext, pointer: PointerState) {
 		this.isDragging = true;
 		this.lastPos = {
 			x: pointer.x,
 			y: pointer.y
 		};
+
+		ctx.cursorManager.setOverride('grabbing');
 	}
 
 	onPointerMove(ctx: ToolContext, pointer: PointerState) {
@@ -36,7 +41,8 @@ export class HandTool extends Tool {
 		this.lastPos = { x: pointer.x, y: pointer.y };
 	}
 
-	onPointerUp() {
+	onPointerUp(ctx: ToolContext) {
 		this.isDragging = false;
+		ctx.cursorManager.clearOverride();
 	}
 }

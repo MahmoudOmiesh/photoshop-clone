@@ -55,7 +55,7 @@ export class Viewport {
 		this.offsetX += x;
 		this.offsetY += y;
 
-		this._clamp();
+		// this._clamp();
 	}
 
 	private applyZoom({ scale, pivotX, pivotY }: TargetScale) {
@@ -72,13 +72,13 @@ export class Viewport {
 				y: viewportPoint.y
 			});
 
-			this.offsetX += newScreenPoint.x - pivotX;
-			this.offsetY += newScreenPoint.y - pivotY;
+			this.offsetX += pivotX - newScreenPoint.x;
+			this.offsetY += pivotY - newScreenPoint.y;
 		} else {
 			this.scale = scale;
 		}
 
-		this._clamp();
+		// this._clamp();
 	}
 
 	zoomIn(pivot: Omit<TargetScale, 'scale'>) {
@@ -100,6 +100,10 @@ export class Viewport {
 			scale: this.scale * factor,
 			...pivot
 		});
+	}
+
+	zoomTo(targetScale: TargetScale) {
+		this.applyZoom(targetScale);
 	}
 
 	getZoomPercentage() {
@@ -163,6 +167,7 @@ export class Viewport {
 	}
 
 	private _clamp() {
+		// this needs to be remade when I introduce the composition
 		this.scale = Math.max(this.config.minScale, Math.min(this.config.maxScale, this.scale));
 		this.offsetX = Math.max(this.config.minOffsetX, Math.min(this.config.maxOffsetX, this.offsetX));
 		this.offsetY = Math.max(this.config.minOffsetY, Math.min(this.config.maxOffsetY, this.offsetY));
