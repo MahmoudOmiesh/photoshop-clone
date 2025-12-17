@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Renderer } from '$lib/canvas/renderer';
+	import { getEditorStore } from '$lib/editor/editor-context';
 	import ToolEventHandler from '$lib/tools/tool-event-handler.svelte';
 	import { assert } from '$lib/utils';
 	import { onMount } from 'svelte';
@@ -20,13 +21,13 @@
 	let displayCanvas: HTMLCanvasElement | null = null;
 	let overlayCanvas: HTMLCanvasElement | null = null;
 
-	let renderer: Renderer | null = null;
+	const editorStore = getEditorStore();
 
 	onMount(() => {
 		assert(displayCanvas);
 		assert(overlayCanvas);
 
-		renderer = new Renderer(displayCanvas, overlayCanvas);
+		editorStore.attachRenderer(new Renderer(displayCanvas, overlayCanvas));
 	});
 </script>
 
@@ -34,15 +35,15 @@
 	class="flex-1 relative border"
 	bind:this={canvasContainer}
 	use:ro={(entry) => {
-		assert(renderer);
+		assert(editorStore.renderer);
 		const { contentRect } = entry;
-		renderer.setDimensions({
+		editorStore.renderer.setDimensions({
 			width: Math.floor(contentRect.width),
 			height: Math.floor(contentRect.height)
 		});
 	}}
 >
-	<ToolEventHandler {renderer}>
+	<ToolEventHandler>
 		<canvas bind:this={displayCanvas} class="absolute top-0 left-0"></canvas>
 		<canvas bind:this={overlayCanvas} class="absolute top-0 left-0 pointer-events-none"></canvas>
 	</ToolEventHandler>

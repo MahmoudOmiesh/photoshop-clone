@@ -1,4 +1,5 @@
-import type { Layer } from './layer/base-layer';
+import { SvelteSet } from 'svelte/reactivity';
+import type { Layer } from './layers/base-layer';
 
 interface CompositionConfig {
 	width: number;
@@ -11,11 +12,13 @@ export class Composition {
 	private height: number;
 	private dpi: number;
 
-	private _layers: Layer[] = [];
-	private activeLayerIds: Set<string> = new Set();
+	private _layers: Layer[] = $state([]);
+	private activeLayerIds: Set<string> = new SvelteSet();
 
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
+
+	private renderCallback: (() => void) | null = null;
 
 	constructor(config: CompositionConfig) {
 		this.width = config.width;
@@ -37,17 +40,20 @@ export class Composition {
 		return this._layers;
 	}
 
+	isLayerActive(layerId: string) {
+		return this.activeLayerIds.has(layerId);
+	}
+
 	addLayer(layer: Layer) {
 		this._layers.push(layer);
+		this.requestRerender();
 	}
 	removeLayer(layerId: string) {
 		this._layers = this._layers.filter((layer) => layer.id !== layerId);
 		this.activeLayerIds.delete(layerId);
+		this.requestRerender();
 	}
 
-	getActiveLayers() {
-		return this.layers.filter((layer) => this.activeLayerIds.has(layer.id));
-	}
 	activateLayer(layerId: string, destructive: boolean = false) {
 		if (destructive) {
 			this.activeLayerIds.clear();
@@ -57,6 +63,10 @@ export class Composition {
 	}
 
 	// Rendering
+	private requestRerender() {
+		this.renderCallback?.();
+	}
+
 	private render() {
 		const offscreenCtx = this.offscreenCanvasContext;
 		offscreenCtx.clearRect(0, 0, this.width, this.height);
@@ -65,6 +75,10 @@ export class Composition {
 			if (!layer.visible) continue;
 			layer.renderTo(offscreenCtx);
 		}
+	}
+
+	setRenderCallback(callback: () => void) {
+		this.renderCallback = callback;
 	}
 
 	getImageBitmap() {

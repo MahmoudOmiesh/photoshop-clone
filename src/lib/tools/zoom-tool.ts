@@ -1,6 +1,7 @@
 import { SearchIcon, ZoomInIcon, ZoomOutIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
 import type { PointerState, ToolContext, ToolOption } from './types';
+import { assert } from '$lib/utils';
 
 export class ZoomTool extends Tool {
 	id = 'zoom-tool';
@@ -40,8 +41,10 @@ export class ZoomTool extends Tool {
 	private firstPos = { x: 0, y: 0 };
 
 	onPointerDown(ctx: ToolContext, pointer: PointerState) {
+		assert(ctx.editorStore.renderer);
+
 		this.isDragging = true;
-		this.initialScale = ctx.renderer.getViewport().getScale();
+		this.initialScale = ctx.editorStore.renderer.getViewport().getScale();
 		this.firstPos = {
 			x: pointer.x,
 			y: pointer.y
@@ -49,21 +52,24 @@ export class ZoomTool extends Tool {
 	}
 
 	onPointerMove(ctx: ToolContext, pointer: PointerState) {
+		assert(ctx.editorStore.renderer);
 		if (!this.isDragging) return;
+
 		this.didDrag = true;
 
 		const deltaX = pointer.x - this.firstPos.x;
 		const factor = Math.pow(1.01, deltaX);
 
-		ctx.renderer.getViewport().zoomTo({
+		ctx.editorStore.renderer.getViewport().zoomTo({
 			scale: this.initialScale * factor,
 			pivotX: this.firstPos.x,
 			pivotY: this.firstPos.y
 		});
-		ctx.renderer.requestRerender();
+		ctx.editorStore.renderer.requestRerender();
 	}
 
 	onPointerUp(ctx: ToolContext) {
+		assert(ctx.editorStore.renderer);
 		this.isDragging = false;
 		if (this.didDrag) {
 			this.didDrag = false;
@@ -75,10 +81,10 @@ export class ZoomTool extends Tool {
 				pivotY: this.firstPos.y
 			};
 
-			if (zoomType === 'zoom-in') ctx.renderer.getViewport().zoomIn(pivot);
-			if (zoomType === 'zoom-out') ctx.renderer.getViewport().zoomOut(pivot);
+			if (zoomType === 'zoom-in') ctx.editorStore.renderer.getViewport().zoomIn(pivot);
+			if (zoomType === 'zoom-out') ctx.editorStore.renderer.getViewport().zoomOut(pivot);
 
-			ctx.renderer.requestRerender();
+			ctx.editorStore.renderer.requestRerender();
 		}
 	}
 }

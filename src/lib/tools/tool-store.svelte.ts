@@ -2,11 +2,10 @@ import { SvelteMap } from 'svelte/reactivity';
 import type { Tool } from './base-tool';
 import { HandTool } from './hand-tool';
 import { assert } from '$lib/utils';
-import type { Renderer } from '$lib/canvas/renderer';
 import type { ToolContext } from './types';
-import { getContext, setContext } from 'svelte';
 import { ZoomTool } from './zoom-tool';
 import { CursorManager } from './cursor-manager.svelte';
+import type { EditorStore } from '$lib/editor/editor-store.svelte';
 
 const ALL_TOOLS = [new HandTool(), new ZoomTool()];
 
@@ -63,9 +62,9 @@ export class ToolStore {
 		}
 	}
 
-	createToolContext(renderer: Renderer): ToolContext {
+	createToolContext(editorStore: EditorStore): ToolContext {
 		return {
-			renderer,
+			editorStore,
 			cursorManager: this.cursorManager,
 			getOptionValue: <T>(key: string): T => {
 				return this.activeToolOptions[key] as T;
@@ -77,15 +76,4 @@ export class ToolStore {
 		const cursor = this.activeTool.getBaseCursor(this.activeToolOptions);
 		this.cursorManager.setBase(cursor);
 	}
-}
-
-const DEFAULT_KEY = '$_tool_store';
-
-export function getToolStore(key = DEFAULT_KEY) {
-	return getContext<ToolStore>(key);
-}
-
-export function setToolStore(key = DEFAULT_KEY) {
-	const toolStore = new ToolStore();
-	return setContext(key, toolStore);
 }

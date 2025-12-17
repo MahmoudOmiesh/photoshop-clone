@@ -1,4 +1,4 @@
-import type { Renderer } from '$lib/canvas/renderer';
+import type { EditorStore } from '$lib/editor/editor-store.svelte';
 import type { Component } from 'svelte';
 
 export type ToolOption =
@@ -39,7 +39,7 @@ export interface CursorContext {
 }
 
 export interface ToolContext {
-	renderer: Renderer;
+	editorStore: EditorStore;
 	cursorManager: CursorContext;
 	getOptionValue: <T>(key: string) => T;
 }

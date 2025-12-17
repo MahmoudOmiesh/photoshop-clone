@@ -1,6 +1,7 @@
 import { HandIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
 import type { PointerState, ToolContext, ToolOption } from './types';
+import { assert } from '$lib/utils';
 
 export class HandTool extends Tool {
 	id = 'hand-tool';
@@ -28,15 +29,16 @@ export class HandTool extends Tool {
 
 	onPointerMove(ctx: ToolContext, pointer: PointerState) {
 		if (!this.isDragging) return;
+		assert(ctx.editorStore.renderer);
 
 		const deltaX = pointer.x - this.lastPos.x;
 		const deltaY = pointer.y - this.lastPos.y;
 
-		ctx.renderer.getViewport().pan({
+		ctx.editorStore.renderer.getViewport().pan({
 			x: deltaX,
 			y: deltaY
 		});
-		ctx.renderer.requestRerender();
+		ctx.editorStore.renderer.requestRerender();
 
 		this.lastPos = { x: pointer.x, y: pointer.y };
 	}
