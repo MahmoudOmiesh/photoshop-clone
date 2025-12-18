@@ -3,8 +3,8 @@ import type { Composition } from '$lib/document/composition.svelte';
 import { ToolStore } from '$lib/tools/tool-store.svelte';
 
 export class EditorStore {
-	private _renderer: Renderer | null = null;
-	private _composition: Composition | null = null;
+	private _renderer: Renderer | null = $state(null);
+	private _composition: Composition | null = $state(null);
 	private _toolStore = new ToolStore();
 
 	get renderer() {

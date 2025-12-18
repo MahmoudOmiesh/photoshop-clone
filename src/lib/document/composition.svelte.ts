@@ -1,5 +1,5 @@
 import { SvelteSet } from 'svelte/reactivity';
-import type { Layer } from './layers/base-layer';
+import type { Layer } from './layers/base-layer.svelte';
 
 interface CompositionConfig {
 	width: number;
@@ -36,8 +36,11 @@ export class Composition {
 	}
 
 	// === Layers ===
-	get layers(): readonly Layer[] {
+	get layers() {
 		return this._layers;
+	}
+	get activeLayers() {
+		return this._layers.filter((layer) => this.activeLayerIds.has(layer.id));
 	}
 
 	isLayerActive(layerId: string) {
@@ -45,17 +48,26 @@ export class Composition {
 	}
 
 	addLayer(layer: Layer) {
+		layer.setRenderCallback(() => this.requestRerender());
 		this._layers.push(layer);
+		this.activateLayer(layer.id, {
+			destructive: true
+		});
 		this.requestRerender();
 	}
 	removeLayer(layerId: string) {
 		this._layers = this._layers.filter((layer) => layer.id !== layerId);
 		this.activeLayerIds.delete(layerId);
+
+		if (this.activeLayerIds.size === 0 && this._layers.length > 0) {
+			this.activeLayerIds.add(this._layers[0]!.id);
+		}
+
 		this.requestRerender();
 	}
 
-	activateLayer(layerId: string, destructive: boolean = false) {
-		if (destructive) {
+	activateLayer(layerId: string, config?: { destructive: boolean }) {
+		if (config?.destructive) {
 			this.activeLayerIds.clear();
 		}
 
@@ -72,7 +84,7 @@ export class Composition {
 		offscreenCtx.clearRect(0, 0, this.width, this.height);
 
 		for (const layer of this.layers) {
-			if (!layer.visible) continue;
+			if (!layer.isVisible) continue;
 			layer.renderTo(offscreenCtx);
 		}
 	}

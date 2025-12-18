@@ -73,10 +73,10 @@ export class Renderer {
 		);
 
 		if (this.composition) {
-			const rulerBitmap = this.ruler.getImageBitmap({ width: this.width, height: this.height });
-			const xOffset = (this.width - rulerBitmap.width) * 0.5;
-			const yOffset = (this.height - rulerBitmap.height) * 0.5;
-			displayCtx.drawImage(rulerBitmap, xOffset, yOffset);
+			const compositionBitmap = this.composition.getImageBitmap();
+			const xOffset = (this.width - compositionBitmap.width) * 0.5;
+			const yOffset = (this.height - compositionBitmap.height) * 0.5;
+			displayCtx.drawImage(compositionBitmap, xOffset, yOffset);
 		} else {
 			displayCtx.fillStyle = 'red';
 			displayCtx.fillRect(this.width / 2 - 50, this.height / 2 - 50, 100, 100);

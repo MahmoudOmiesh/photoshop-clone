@@ -1,16 +1,19 @@
-export type BlendMode =
-	| 'normal'
-	| 'multiply'
-	| 'screen'
-	| 'overlay'
-	| 'darken'
-	| 'lighten'
-	| 'color-dodge'
-	| 'color-burn'
-	| 'hard-light'
-	| 'soft-light'
-	| 'difference'
-	| 'exclusion';
+export const BLEND_MODES = [
+	'normal',
+	'multiply',
+	'screen',
+	'overlay',
+	'darken',
+	'lighten',
+	'color-dodge',
+	'color-burn',
+	'hard-light',
+	'soft-light',
+	'difference',
+	'exclusion'
+];
+
+export type BlendMode = (typeof BLEND_MODES)[number];
 
 // not sure yet
 export interface LayerLocks {

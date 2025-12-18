@@ -1,5 +1,5 @@
 import { compose, rotateDEG, scale, skew, translate } from 'transformation-matrix';
-import { Layer } from './base-layer';
+import { Layer } from './base-layer.svelte';
 import type { LayerTransform } from './types';
 
 export class RasterLayer extends Layer {
@@ -34,6 +34,9 @@ export class RasterLayer extends Layer {
 		}
 
 		this.offscreenCanvasContext = offscreenCanvasContext;
+
+		// REMOVE THIS LATER
+		this.__makeRandomImage();
 	}
 
 	getImageData() {
@@ -63,12 +66,43 @@ export class RasterLayer extends Layer {
 		const skewXRad = (skewX * Math.PI) / 180;
 		const skewYRad = (skewY * Math.PI) / 180;
 
+		const x = anchorX * this.width;
+		const y = anchorY * this.height;
+
 		return compose(
-			translate(offsetX, offsetY),
+			translate(-x, -y),
 			rotateDEG(rotation),
 			skew(skewXRad, skewYRad),
 			scale(scaleX, scaleY),
-			translate(-(anchorX * this.width), -(anchorY * this.height))
+			translate(offsetX + x, offsetY + y)
 		);
+	}
+
+	__makeRandomImage() {
+		// Source - https://stackoverflow.com/a
+		// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
+		// Retrieved 2025-12-17, License - CC BY-SA 3.0
+
+		function getRandomColor() {
+			const letters = '0123456789ABCDEF';
+			let color = '#';
+			for (let i = 0; i < 6; i++) {
+				color += letters[Math.floor(Math.random() * 16)];
+			}
+			return color;
+		}
+
+		const offscreenCtx = this.offscreenCanvasContext;
+		offscreenCtx.fillStyle = getRandomColor();
+		offscreenCtx.fillRect(0, 0, this.width, this.height);
+
+		const min = 0.1 * this.width;
+		const max = 0.6 * this.width;
+
+		const randomLength = Math.floor(Math.random() * (max - min + 1) + min);
+		const randomPos = Math.floor(Math.random() * (max - min + 1) + min);
+
+		offscreenCtx.fillStyle = getRandomColor();
+		offscreenCtx.fillRect(randomPos, randomPos, randomLength, randomLength);
 	}
 }

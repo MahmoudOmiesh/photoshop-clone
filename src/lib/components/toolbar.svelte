@@ -1,8 +1,27 @@
 <script>
+	import { Composition } from '$lib/document/composition.svelte';
+	import { RasterLayer } from '$lib/document/layers/raster-layer';
 	import { getEditorStore } from '$lib/editor/editor-context';
+	import { assert } from '$lib/utils';
 	import { Button } from './ui/button';
 
 	const editorStore = getEditorStore();
+
+	function addComposition() {
+		editorStore.attachComposition(
+			new Composition({
+				width: 800,
+				height: 600,
+				dpi: 90
+			})
+		);
+	}
+
+	function addLayer() {
+		assert(editorStore.composition);
+
+		editorStore.composition.addLayer(new RasterLayer('LAYER', 800, 600));
+	}
 </script>
 
 <div class="bg-card h-fit m-2 rounded-md">
@@ -19,5 +38,9 @@
 				</Button>
 			</li>
 		{/each}
+
+		<!-- TESTING -->
+		<li onclick={addComposition}>make comp</li>
+		<li onclick={addLayer}>add layer</li>
 	</ul>
 </div>
