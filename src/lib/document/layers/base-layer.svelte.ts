@@ -1,8 +1,10 @@
 import { nanoid } from 'nanoid';
-import type { BlendMode, LayerLocks } from './types';
+import type { BlendMode, LayerLocks, LayerType } from './types';
+import type { RasterLayer } from './raster-layer';
 
 export abstract class Layer {
 	readonly id: string;
+	readonly type: LayerType;
 
 	protected _name = $state('');
 	protected _isVisible = $state(true);
@@ -35,9 +37,10 @@ export abstract class Layer {
 
 	abstract renderTo(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D): void;
 
-	constructor(name: string) {
+	constructor(name: string, type: LayerType) {
 		this.id = nanoid();
 		this._name = name;
+		this.type = type;
 	}
 
 	setName(name: string) {
@@ -82,7 +85,12 @@ export abstract class Layer {
 		this.renderCallback = callback;
 	}
 
-	private requestRerender() {
+	protected requestRerender() {
 		this.renderCallback?.();
+	}
+
+	// Checks
+	static isRasterLayer(layer: Layer): layer is RasterLayer {
+		return layer.type === 'raster';
 	}
 }

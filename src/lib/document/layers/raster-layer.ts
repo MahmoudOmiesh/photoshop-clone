@@ -3,8 +3,6 @@ import { Layer } from './base-layer.svelte';
 import type { LayerTransform } from './types';
 
 export class RasterLayer extends Layer {
-	readonly type = 'raster' as const;
-
 	private width: number;
 	private height: number;
 	private transform: LayerTransform = {
@@ -23,7 +21,7 @@ export class RasterLayer extends Layer {
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
 
 	constructor(name: string, width: number, height: number) {
-		super(name);
+		super(name, 'raster');
 		this.width = width;
 		this.height = height;
 		this.offscreenCanvas = new OffscreenCanvas(width, height);
@@ -76,6 +74,12 @@ export class RasterLayer extends Layer {
 			scale(scaleX, scaleY),
 			translate(offsetX + x, offsetY + y)
 		);
+	}
+
+	move({ x, y }: { x: number; y: number }) {
+		this.transform.offsetX += x;
+		this.transform.offsetY += y;
+		this.requestRerender();
 	}
 
 	__makeRandomImage() {

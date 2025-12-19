@@ -6,8 +6,9 @@ import type { ToolContext } from './types';
 import { ZoomTool } from './zoom-tool';
 import { CursorManager } from './cursor-manager.svelte';
 import type { EditorStore } from '$lib/editor/editor-store.svelte';
+import { MoveTool } from './move-tool';
 
-const ALL_TOOLS: Tool[] = [new HandTool(), new ZoomTool()];
+const ALL_TOOLS: Tool[] = [new HandTool(), new ZoomTool(), new MoveTool()];
 
 export class ToolStore {
 	private readonly toolsMap = new SvelteMap<string, Tool>(ALL_TOOLS.map((tool) => [tool.id, tool]));

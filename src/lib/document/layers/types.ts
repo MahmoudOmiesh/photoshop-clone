@@ -39,3 +39,5 @@ export interface LayerDimensions {
 	width: number;
 	height: number;
 }
+
+export type LayerType = 'raster';
