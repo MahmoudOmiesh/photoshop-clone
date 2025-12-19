@@ -2,34 +2,38 @@ import type { RasterLayer } from '$lib/document/layers/raster-layer';
 import { Command } from '../command';
 
 interface MoveLayerCommandOptions {
-	layer: RasterLayer;
+	layers: RasterLayer[];
 	x: number;
 	y: number;
 }
 
 export class MoveLayerCommand extends Command {
-	private layer: RasterLayer;
+	private layers: RasterLayer[];
 	private x: number;
 	private y: number;
 
-	constructor({ layer, x, y }: MoveLayerCommandOptions) {
+	constructor({ layers, x, y }: MoveLayerCommandOptions) {
 		super();
-		this.layer = layer;
+		this.layers = layers;
 		this.x = x;
 		this.y = y;
 	}
 
 	execute() {
-		this.layer.move({
-			x: this.x,
-			y: this.y
+		this.layers.forEach((layer) => {
+			layer.move({
+				x: this.x,
+				y: this.y
+			});
 		});
 	}
 
 	undo() {
-		this.layer.move({
-			x: -this.x,
-			y: -this.y
+		this.layers.forEach((layer) => {
+			layer.move({
+				x: -this.x,
+				y: -this.y
+			});
 		});
 	}
 }

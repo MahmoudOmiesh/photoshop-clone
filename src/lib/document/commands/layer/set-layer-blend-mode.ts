@@ -3,28 +3,33 @@ import type { BlendMode } from '$lib/document/layers/types';
 import { Command } from '../command';
 
 interface SetLayerBlendModeCommandOptions {
-	layer: Layer;
-	oldBlendMode: BlendMode;
-	newBlendMode: BlendMode;
+	layers: Layer[];
+	blendMode: BlendMode;
 }
 
 export class SetLayerBlendModeCommand extends Command {
-	private layer: Layer;
-	private oldBlendMode: BlendMode;
+	private layers: Layer[];
 	private newBlendMode: BlendMode;
 
-	constructor({ layer, oldBlendMode, newBlendMode }: SetLayerBlendModeCommandOptions) {
+	private originalLayerBlendMode: Map<string, BlendMode>;
+
+	constructor({ layers, blendMode }: SetLayerBlendModeCommandOptions) {
 		super();
-		this.layer = layer;
-		this.oldBlendMode = oldBlendMode;
-		this.newBlendMode = newBlendMode;
+		this.layers = layers;
+		this.newBlendMode = blendMode;
+
+		this.originalLayerBlendMode = new Map(layers.map((layer) => [layer.id, layer.blendMode]));
 	}
 
 	execute() {
-		this.layer.setBlendMode(this.newBlendMode);
+		this.layers.forEach((layer) => {
+			layer.setBlendMode(this.newBlendMode);
+		});
 	}
 
 	undo() {
-		this.layer.setBlendMode(this.oldBlendMode);
+		this.layers.forEach((layer) => {
+			layer.setBlendMode(this.originalLayerBlendMode.get(layer.id)!);
+		});
 	}
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SetLayerOpacityCommand } from '$lib/document/commands/layer/set-layer-opacity';
 	import { getEditorStore } from '$lib/editor/editor-context';
+	import { assert } from '$lib/utils';
 	import { Input } from './ui/input';
 	import { Label } from './ui/label';
 
@@ -20,21 +21,17 @@
 	let opacityInput = $derived(activeOpacity != null ? `${activeOpacity * 100}%` : '');
 
 	function commitOpacity() {
+		assert(editorStore.composition);
 		// Remove '%' and any whitespace, then parse to number
 		const numericValue = parseFloat(opacityInput.replace(/[%\s]/g, ''));
-		const newOpacity = isNaN(numericValue) ? 1 : Math.max(0, Math.min(100, numericValue)) / 100;
+		const opacity = isNaN(numericValue) ? 1 : Math.max(0, Math.min(100, numericValue)) / 100;
 
-		console.log('NEW OPACITY', newOpacity);
-
-		editorStore.composition?.activeLayers.forEach((layer) => {
-			editorStore.executeCommand(
-				new SetLayerOpacityCommand({
-					layer,
-					oldOpacity: layer.opacity,
-					newOpacity
-				})
-			);
-		});
+		editorStore.executeCommand(
+			new SetLayerOpacityCommand({
+				layers: editorStore.composition.activeLayers,
+				opacity
+			})
+		);
 	}
 </script>
 

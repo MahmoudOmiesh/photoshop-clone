@@ -2,28 +2,33 @@ import type { Layer } from '$lib/document/layers/base-layer.svelte';
 import { Command } from '../command';
 
 interface SetLayerOpacityCommandOptions {
-	layer: Layer;
-	oldOpacity: number;
-	newOpacity: number;
+	layers: Layer[];
+	opacity: number;
 }
 
 export class SetLayerOpacityCommand extends Command {
-	private layer: Layer;
-	private oldOpacity: number;
+	private layers: Layer[];
 	private newOpacity: number;
 
-	constructor({ layer, oldOpacity, newOpacity }: SetLayerOpacityCommandOptions) {
+	private originalLayerOpacity: Map<string, number>;
+
+	constructor({ layers, opacity }: SetLayerOpacityCommandOptions) {
 		super();
-		this.layer = layer;
-		this.oldOpacity = oldOpacity;
-		this.newOpacity = newOpacity;
+		this.layers = layers;
+		this.newOpacity = opacity;
+
+		this.originalLayerOpacity = new Map(layers.map((layer) => [layer.id, layer.opacity]));
 	}
 
 	execute() {
-		this.layer.setOpacity(this.newOpacity);
+		this.layers.forEach((layer) => {
+			layer.setOpacity(this.newOpacity);
+		});
 	}
 
 	undo() {
-		this.layer.setOpacity(this.oldOpacity);
+		this.layers.forEach((layer) => {
+			layer.setOpacity(this.originalLayerOpacity.get(layer.id)!);
+		});
 	}
 }

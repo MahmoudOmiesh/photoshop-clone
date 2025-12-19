@@ -3,6 +3,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { BLEND_MODES, type BlendMode } from '$lib/document/layers/types';
 	import { SetLayerBlendModeCommand } from '$lib/document/commands/layer/set-layer-blend-mode';
+	import { assert } from '$lib/utils';
 
 	const editorStore = getEditorStore();
 	const activeBlendMode = $derived.by(() => {
@@ -22,16 +23,14 @@
 	type="single"
 	bind:value={
 		() => activeBlendMode ?? '',
-		(newBlendMode: BlendMode) => {
-			editorStore.composition?.activeLayers.forEach((layer) => {
-				editorStore.executeCommand(
-					new SetLayerBlendModeCommand({
-						layer,
-						oldBlendMode: layer.blendMode,
-						newBlendMode
-					})
-				);
-			});
+		(blendMode: BlendMode) => {
+			assert(editorStore.composition);
+			editorStore.executeCommand(
+				new SetLayerBlendModeCommand({
+					layers: editorStore.composition.activeLayers,
+					blendMode
+				})
+			);
 		}
 	}
 >

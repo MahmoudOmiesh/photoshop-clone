@@ -3,6 +3,7 @@ import { Tool } from './base-tool';
 import type { PointerState, ToolContext, ToolOption } from './types';
 import { Layer } from '$lib/document/layers/base-layer.svelte';
 import { MoveLayerCommand } from '$lib/document/commands/layer/move-layer';
+import { assert } from '$lib/utils';
 
 export class MoveTool extends Tool {
 	id = 'move-tool';
@@ -15,17 +16,18 @@ export class MoveTool extends Tool {
 	private lastPos = { x: 0, y: 0 };
 
 	private moveActiveLayers(ctx: ToolContext, { x, y }: { x: number; y: number }) {
-		ctx.editorStore.composition?.activeLayers.forEach((layer) => {
-			if (Layer.isRasterLayer(layer)) {
-				ctx.editorStore.executeCommand(
-					new MoveLayerCommand({
-						layer,
-						x,
-						y
-					})
-				);
-			}
-		});
+		assert(ctx.editorStore.composition);
+		const activeRasterLayers = ctx.editorStore.composition.activeLayers.filter((layer) =>
+			Layer.isRasterLayer(layer)
+		);
+
+		ctx.editorStore.executeCommand(
+			new MoveLayerCommand({
+				layers: activeRasterLayers,
+				x,
+				y
+			})
+		);
 	}
 
 	onPointerDown(_: ToolContext, pointer: PointerState) {
