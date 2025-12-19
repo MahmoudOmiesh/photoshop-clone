@@ -7,10 +7,14 @@ import { ZoomTool } from './zoom-tool';
 import { CursorManager } from './cursor-manager.svelte';
 import type { EditorStore } from '$lib/editor/editor-store.svelte';
 
-const ALL_TOOLS = [new HandTool(), new ZoomTool()];
+const ALL_TOOLS: Tool[] = [new HandTool(), new ZoomTool()];
 
 export class ToolStore {
 	private readonly toolsMap = new SvelteMap<string, Tool>(ALL_TOOLS.map((tool) => [tool.id, tool]));
+	private readonly toolShortcutsMap = new SvelteMap<string, Tool>(
+		ALL_TOOLS.filter((tool) => tool.shortcut).map((tool) => [tool.shortcut!, tool])
+	);
+
 	private toolOptionsMap = new SvelteMap<string, Record<string, unknown>>(
 		ALL_TOOLS.map((tool) => {
 			const defaults: Record<string, unknown> = {};
@@ -39,6 +43,10 @@ export class ToolStore {
 
 	get allTools() {
 		return Array.from(this.toolsMap.values());
+	}
+
+	getToolByShortcut(shortcut: string) {
+		return this.toolShortcutsMap.get(shortcut) ?? null;
 	}
 
 	isToolActive(toolId: string) {

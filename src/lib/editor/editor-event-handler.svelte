@@ -84,6 +84,13 @@
 			return;
 		}
 
+		const shortcutTool = editorStore.toolStore.getToolByShortcut(e.key.toLowerCase());
+
+		if (shortcutTool) {
+			editorStore.toolStore.selectTool(shortcutTool.id);
+			return;
+		}
+
 		editorStore.toolStore.activeTool.onKeyDown?.(toolContext, e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
