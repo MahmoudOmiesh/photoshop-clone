@@ -1,14 +1,16 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { PointerState } from './types';
 	import { assert } from '$lib/utils';
 	import { getEditorStore } from '$lib/editor/editor-context';
+	import type { PointerState } from '$lib/tools/types';
+	import type { ClassValue } from 'svelte/elements';
 
 	interface Props {
 		children: Snippet;
+		class?: ClassValue;
 	}
 
-	const { children }: Props = $props();
+	const props: Props = $props();
 	const editorStore = getEditorStore();
 
 	const toolContext = $derived(
@@ -70,6 +72,18 @@
 	function onkeydown(e: KeyboardEvent) {
 		assert(toolContext);
 
+		if (e.ctrlKey || e.metaKey) {
+			if (e.key === 'z' && !e.shiftKey) {
+				e.preventDefault();
+				editorStore.undo();
+			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+				e.preventDefault();
+				editorStore.redo();
+			}
+
+			return;
+		}
+
 		editorStore.toolStore.activeTool.onKeyDown?.(toolContext, e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
@@ -93,11 +107,12 @@
 <svelte:window {onkeydown} {onkeyup} />
 
 <div
-	style:cursor={editorStore.toolStore.cursorManager.cursor}
 	{onpointerdown}
 	{onpointermove}
 	{onpointerup}
 	{onwheel}
+	class={props.class}
+	style:cursor={editorStore.toolStore.cursorManager.cursor}
 >
-	{@render children()}
+	{@render props.children()}
 </div>

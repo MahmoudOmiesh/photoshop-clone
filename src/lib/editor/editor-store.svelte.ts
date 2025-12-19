@@ -1,4 +1,6 @@
 import type { Renderer } from '$lib/canvas/renderer';
+import type { Command, CommandContext } from '$lib/document/commands/command';
+import { History } from '$lib/document/commands/history.svelte';
 import type { Composition } from '$lib/document/composition.svelte';
 import { ToolStore } from '$lib/tools/tool-store.svelte';
 
@@ -6,6 +8,7 @@ export class EditorStore {
 	private _renderer: Renderer | null = $state(null);
 	private _composition: Composition | null = $state(null);
 	private _toolStore = new ToolStore();
+	private _history = new History();
 
 	get renderer() {
 		return this._renderer;
@@ -17,6 +20,14 @@ export class EditorStore {
 
 	get toolStore() {
 		return this._toolStore;
+	}
+
+	private getCommandContext(): CommandContext | null {
+		return this._composition
+			? {
+					composition: this._composition
+				}
+			: null;
 	}
 
 	attachRenderer(renderer: Renderer) {
@@ -33,5 +44,26 @@ export class EditorStore {
 			this._renderer.attachComposition(composition);
 			this._composition.setRenderCallback(() => this._renderer!.requestRerender());
 		}
+	}
+
+	executeCommand(command: Command) {
+		const ctx = this.getCommandContext();
+		if (!ctx) return;
+
+		this._history.execute(command, ctx);
+	}
+
+	undo() {
+		const ctx = this.getCommandContext();
+		if (!ctx) return;
+
+		this._history.undo(ctx);
+	}
+
+	redo() {
+		const ctx = this.getCommandContext();
+		if (!ctx) return;
+
+		this._history.redo(ctx);
 	}
 }

@@ -1,8 +1,8 @@
 <script>
+	import { AddLayerCommand } from '$lib/document/commands/layer/add-layer';
 	import { Composition } from '$lib/document/composition.svelte';
 	import { RasterLayer } from '$lib/document/layers/raster-layer';
 	import { getEditorStore } from '$lib/editor/editor-context';
-	import { assert } from '$lib/utils';
 	import { Button } from './ui/button';
 
 	const editorStore = getEditorStore();
@@ -18,9 +18,11 @@
 	}
 
 	function addLayer() {
-		assert(editorStore.composition);
-
-		editorStore.composition.addLayer(new RasterLayer('LAYER', 800, 600));
+		editorStore.executeCommand(
+			new AddLayerCommand({
+				layer: new RasterLayer('LAYER', 800, 600)
+			})
+		);
 	}
 </script>
 

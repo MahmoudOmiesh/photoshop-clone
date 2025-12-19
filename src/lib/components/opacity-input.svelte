@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SetLayerOpacityCommand } from '$lib/document/commands/layer/set-layer-opacity';
 	import { getEditorStore } from '$lib/editor/editor-context';
 	import { Input } from './ui/input';
 	import { Label } from './ui/label';
@@ -21,13 +22,19 @@
 	function commitOpacity() {
 		// Remove '%' and any whitespace, then parse to number
 		const numericValue = parseFloat(opacityInput.replace(/[%\s]/g, ''));
+		const newOpacity = isNaN(numericValue) ? 1 : Math.max(0, Math.min(100, numericValue)) / 100;
 
-		if (!isNaN(numericValue)) {
-			const opacity = Math.max(0, Math.min(100, numericValue)) / 100;
-			editorStore.composition?.activeLayers.forEach((layer) => {
-				layer.setOpacity(opacity);
-			});
-		}
+		console.log('NEW OPACITY', newOpacity);
+
+		editorStore.composition?.activeLayers.forEach((layer) => {
+			editorStore.executeCommand(
+				new SetLayerOpacityCommand({
+					layer,
+					oldOpacity: layer.opacity,
+					newOpacity
+				})
+			);
+		});
 	}
 </script>
 

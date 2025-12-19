@@ -6,6 +6,8 @@
 	import { cn } from '$lib/utils';
 	import OpacityInput from './opacity-input.svelte';
 	import BlendingModeInput from './blending-mode-input.svelte';
+	import { SetLayerVisibilityCommand } from '$lib/document/commands/layer/set-layer-visibility';
+	import { RemoveLayerCommand } from '$lib/document/commands/layer/remove-layer';
 
 	const editorStore = getEditorStore();
 </script>
@@ -38,7 +40,12 @@
 						class="size-7"
 						onclick={(e) => {
 							e.stopPropagation();
-							layer.setIsVisible(!layer.isVisible);
+							editorStore.executeCommand(
+								new SetLayerVisibilityCommand({
+									layer,
+									visiblity: !layer.isVisible
+								})
+							);
 						}}
 					>
 						{#if layer.isVisible}
@@ -57,7 +64,11 @@
 						variant="ghost"
 						onclick={(e) => {
 							e.stopPropagation();
-							editorStore.composition?.removeLayer(layer.id);
+							editorStore.executeCommand(
+								new RemoveLayerCommand({
+									layer
+								})
+							);
 						}}
 					>
 						<XIcon />

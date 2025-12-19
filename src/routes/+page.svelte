@@ -9,7 +9,7 @@
 <MainMenu />
 <ToolOptions />
 
-<div class="flex-1 flex">
+<div class="flex flex-1">
 	<Toolbar />
 	<Stage />
 	<Sidebar />
