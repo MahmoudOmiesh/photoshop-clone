@@ -1,3 +1,6 @@
+import type { Composition } from '$lib/document/composition.svelte';
+import type { RasterLayer } from '$lib/document/layers/raster-layer';
+import { assert } from '$lib/utils';
 import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
 
 interface ViewportConfig {
@@ -46,9 +49,14 @@ export class Viewport {
 	private insetLeft = 0;
 
 	private config: ViewportConfig;
+	private composition: Composition | null = null;
 
 	constructor(config?: Partial<ViewportConfig>) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
+	}
+
+	attachComposition(composition: Composition) {
+		this.composition = composition;
 	}
 
 	pan({ x, y }: { x: number; y: number }) {
@@ -116,6 +124,32 @@ export class Viewport {
 
 	fitScreen() {
 		// TODO: this will need the composition width and height
+	}
+
+	getCompositionCoords() {
+		assert(this.composition);
+		const { width, height } = this.composition.dimensions;
+
+		return {
+			topLeft: {
+				x: 0.5 * (this.containerWidth - width),
+				y: 0.5 * (this.containerHeight - height)
+			},
+			width: width,
+			height: height
+		};
+	}
+
+	getLayerCoords(layer: RasterLayer) {
+		const { topLeft } = this.getCompositionCoords();
+		return {
+			topLeft: {
+				x: topLeft.x + layer.offset.x,
+				y: topLeft.y + layer.offset.y
+			},
+			width: layer.dimensions.width,
+			height: layer.dimensions.height
+		};
 	}
 
 	screenToViewport(point: { x: number; y: number }) {

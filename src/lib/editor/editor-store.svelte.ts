@@ -2,6 +2,7 @@ import type { Renderer } from '$lib/canvas/renderer';
 import type { Command, CommandContext } from '$lib/document/commands/command';
 import { History } from '$lib/document/commands/history.svelte';
 import type { Composition } from '$lib/document/composition.svelte';
+import { SnapManager } from '$lib/snap/snap-manager';
 import { ToolStore } from '$lib/tools/tool-store.svelte';
 
 export class EditorStore {
@@ -9,6 +10,7 @@ export class EditorStore {
 	private _composition: Composition | null = $state(null);
 	private _toolStore = new ToolStore();
 	private _history = new History();
+	private _snapManager = new SnapManager();
 
 	get renderer() {
 		return this._renderer;
@@ -20,6 +22,10 @@ export class EditorStore {
 
 	get toolStore() {
 		return this._toolStore;
+	}
+
+	get snapManager() {
+		return this._snapManager;
 	}
 
 	private getCommandContext(): CommandContext | null {

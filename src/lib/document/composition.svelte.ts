@@ -20,6 +20,13 @@ export class Composition {
 
 	private renderCallback: (() => void) | null = null;
 
+	get dimensions() {
+		return {
+			width: this.width,
+			height: this.height
+		};
+	}
+
 	constructor(config: CompositionConfig) {
 		this.width = config.width;
 		this.height = config.height;

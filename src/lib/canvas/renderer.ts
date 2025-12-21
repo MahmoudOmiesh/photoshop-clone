@@ -3,6 +3,8 @@
 // 2 - overlay canvas which will be used for any overlays like rulers, selection, etc.
 
 import type { Composition } from '$lib/document/composition.svelte';
+import { SnapGuideRenderer } from '$lib/snap/snap-guide-renderer';
+import type { SnapGuide } from '$lib/snap/types';
 import { Ruler } from './ruler';
 import { Viewport } from './viewport';
 
@@ -21,7 +23,11 @@ export class Renderer {
 	private shouldRerender = false;
 
 	private ruler: Ruler = new Ruler(this.viewport);
+	private snapGuidesRenderer: SnapGuideRenderer = new SnapGuideRenderer(this.viewport);
+	private snapGuides: SnapGuide[] = [];
+
 	rulerEnabled = true;
+	snapGuidesEnabled = true;
 
 	constructor(displayCanvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement) {
 		this.displayCanvas = displayCanvas;
@@ -50,6 +56,14 @@ export class Renderer {
 		if (this.rulerEnabled) {
 			const rulerBitmap = this.ruler.getImageBitmap({ width: this.width, height: this.height });
 			overlayCtx.drawImage(rulerBitmap, 0, 0);
+		}
+
+		if (this.snapGuidesEnabled) {
+			const snapGuidesBitmap = this.snapGuidesRenderer.getImageBitmap(this.snapGuides, {
+				width: this.width,
+				height: this.height
+			});
+			overlayCtx.drawImage(snapGuidesBitmap, 0, 0);
 		}
 	}
 
@@ -88,6 +102,7 @@ export class Renderer {
 	private render() {
 		if (this.shouldRerender) {
 			console.log('RENDER');
+
 			this.drawDisplayCanvas();
 			this.drawOverlayCanvas();
 
@@ -152,6 +167,16 @@ export class Renderer {
 
 	attachComposition(composition: Composition) {
 		this.composition = composition;
+		this.viewport.attachComposition(composition);
+		this.requestRerender();
+	}
+
+	setSnapGuides(guides: SnapGuide[]) {
+		this.snapGuides = guides;
+	}
+
+	clearSnapGuides() {
+		this.snapGuides = [];
 		this.requestRerender();
 	}
 }

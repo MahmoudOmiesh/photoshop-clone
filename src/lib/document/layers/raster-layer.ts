@@ -37,6 +37,20 @@ export class RasterLayer extends Layer {
 		this.__makeRandomImage();
 	}
 
+	get dimensions() {
+		return {
+			width: this.width,
+			height: this.height
+		};
+	}
+
+	get offset() {
+		return {
+			x: this.transform.offsetX,
+			y: this.transform.offsetY
+		};
+	}
+
 	getImageData() {
 		return this.offscreenCanvasContext.getImageData(0, 0, this.width, this.height);
 	}
