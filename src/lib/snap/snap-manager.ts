@@ -1,5 +1,5 @@
-import { Viewport } from '$lib/canvas/viewport';
 import type { Composition } from '$lib/document/composition.svelte';
+import type { ViewportStore, Bounds } from '$lib/stores/viewport.svelte';
 import type { SnapGuide, SnapResult, SnapSource, SnapTarget } from './types';
 
 interface SnapManagerConfig {
@@ -12,6 +12,10 @@ const DEFAULT_CONFIG: SnapManagerConfig = {
 	snapToComposition: true
 };
 
+interface ViewportLike {
+	getCompositionBounds(): Bounds | null;
+}
+
 export class SnapManager {
 	private config: SnapManagerConfig;
 
@@ -19,10 +23,14 @@ export class SnapManager {
 		this.config = { ...DEFAULT_CONFIG, ...config };
 	}
 
-	calculateSnap(params: { target: SnapTarget; composition: Composition; viewport: Viewport }) {
-		const { target, composition, viewport } = params;
+	calculateSnap(params: {
+		target: SnapTarget;
+		composition: Composition;
+		viewportStore: ViewportStore;
+	}): SnapResult | null {
+		const { target, viewportStore } = params;
 
-		const sources = this.getSnapSources({ composition, viewport });
+		const sources = this.getSnapSources(viewportStore);
 
 		const snapResultX = this.findHorizontalSnap({ sources, target });
 		const snapResultY = this.findVerticalSnap({ sources, target });
@@ -33,53 +41,39 @@ export class SnapManager {
 		if (snapResultX) guides.push(snapResultX.guideX);
 		if (snapResultY) guides.push(snapResultY.guideY);
 
-		const result: SnapResult = {
+		return {
 			deltaX: snapResultX?.deltaX ?? 0,
 			deltaY: snapResultY?.deltaY ?? 0,
 			guides
 		};
-		return result;
 	}
 
-	private getSnapSources(params: { composition: Composition; viewport: Viewport }) {
-		const { viewport } = params;
+	private getSnapSources(viewport: ViewportLike): SnapSource[] {
 		const sources: SnapSource[] = [];
 
 		if (this.config.snapToComposition) {
-			const { topLeft, width, height } = viewport.getCompositionCoords();
+			const bounds = viewport.getCompositionBounds();
+			if (!bounds) return sources;
+
+			const { topLeft, width, height } = bounds;
 
 			sources.push(
-				{
-					type: 'composition-edge',
-					x: topLeft.x
-				},
-				{
-					type: 'composition-edge',
-					x: topLeft.x + width
-				},
-				{
-					type: 'composition-edge',
-					y: topLeft.y
-				},
-				{
-					type: 'composition-edge',
-					y: topLeft.y + height
-				},
-				{
-					type: 'composition-center',
-					x: topLeft.x + width / 2
-				},
-				{
-					type: 'composition-center',
-					y: topLeft.y + height / 2
-				}
+				{ type: 'composition-edge', x: topLeft.x },
+				{ type: 'composition-edge', x: topLeft.x + width },
+				{ type: 'composition-edge', y: topLeft.y },
+				{ type: 'composition-edge', y: topLeft.y + height },
+				{ type: 'composition-center', x: topLeft.x + width / 2 },
+				{ type: 'composition-center', y: topLeft.y + height / 2 }
 			);
 		}
 
 		return sources;
 	}
 
-	private findHorizontalSnap(params: { target: SnapTarget; sources: SnapSource[] }) {
+	private findHorizontalSnap(params: {
+		target: SnapTarget;
+		sources: SnapSource[];
+	}): { deltaX: number; guideX: SnapGuide } | null {
 		const { target, sources } = params;
 		const threshold = this.config.threshold;
 
@@ -87,41 +81,34 @@ export class SnapManager {
 		let bestSnap: { distance: number; adjustment: number; source: SnapSource } | null = null;
 
 		for (const source of sources) {
-			if (!source.x) continue;
+			if (source.x === undefined) continue;
 
 			for (const pos of targetXPositions) {
 				const distance = Math.abs(source.x - pos);
-				if (distance < threshold) {
-					if (!bestSnap || distance < bestSnap.distance) {
-						bestSnap = {
-							distance,
-							adjustment: source.x! - pos,
-							source: source
-						};
-					}
+				if (distance < threshold && (!bestSnap || distance < bestSnap.distance)) {
+					bestSnap = { distance, adjustment: source.x - pos, source };
 				}
 			}
 		}
 
-		if (!bestSnap) {
-			return null;
-		}
-
-		const guideX: SnapGuide = {
-			type: 'vertical',
-			position: bestSnap.source.x!,
-			start: target.top,
-			end: target.bottom,
-			snapSourceType: bestSnap.source.type
-		};
+		if (!bestSnap || bestSnap.source.x === undefined) return null;
 
 		return {
 			deltaX: bestSnap.adjustment,
-			guideX
+			guideX: {
+				type: 'vertical',
+				position: bestSnap.source.x,
+				start: target.top,
+				end: target.bottom,
+				snapSourceType: bestSnap.source.type
+			}
 		};
 	}
 
-	private findVerticalSnap(params: { target: SnapTarget; sources: SnapSource[] }) {
+	private findVerticalSnap(params: {
+		target: SnapTarget;
+		sources: SnapSource[];
+	}): { deltaY: number; guideY: SnapGuide } | null {
 		const { target, sources } = params;
 		const threshold = this.config.threshold;
 
@@ -129,37 +116,27 @@ export class SnapManager {
 		let bestSnap: { distance: number; adjustment: number; source: SnapSource } | null = null;
 
 		for (const source of sources) {
-			if (!source.y) continue;
+			if (source.y === undefined) continue;
 
 			for (const pos of targetYPositions) {
 				const distance = Math.abs(source.y - pos);
-				if (distance < threshold) {
-					if (!bestSnap || distance < bestSnap.distance) {
-						bestSnap = {
-							distance,
-							adjustment: source.y! - pos,
-							source: source
-						};
-					}
+				if (distance < threshold && (!bestSnap || distance < bestSnap.distance)) {
+					bestSnap = { distance, adjustment: source.y - pos, source };
 				}
 			}
 		}
 
-		if (!bestSnap) {
-			return null;
-		}
-
-		const guideY: SnapGuide = {
-			type: 'horizontal',
-			position: bestSnap.source.y!,
-			start: target.left,
-			end: target.right,
-			snapSourceType: bestSnap.source.type
-		};
+		if (!bestSnap || bestSnap.source.y === undefined) return null;
 
 		return {
 			deltaY: bestSnap.adjustment,
-			guideY
+			guideY: {
+				type: 'horizontal',
+				position: bestSnap.source.y,
+				start: target.left,
+				end: target.right,
+				snapSourceType: bestSnap.source.type
+			}
 		};
 	}
 }

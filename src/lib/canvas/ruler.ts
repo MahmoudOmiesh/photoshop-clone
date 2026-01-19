@@ -1,4 +1,4 @@
-import { Viewport } from './viewport';
+import type { ViewportStore } from '$lib/stores/viewport.svelte';
 
 interface RulerConfig {
 	pixelsPerMajorStep: number;
@@ -17,10 +17,10 @@ const NICE_STEPS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 export class Ruler {
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
-	private viewport: Viewport;
+	private viewport: ViewportStore;
 	private config: RulerConfig;
 
-	constructor(viewport: Viewport, config?: RulerConfig) {
+	constructor(viewport: ViewportStore, config?: RulerConfig) {
 		this.offscreenCanvas = new OffscreenCanvas(0, 0);
 		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
 
@@ -36,15 +36,9 @@ export class Ruler {
 
 	private renderHorizontalRuler(width: number) {
 		const offscreenCtx = this.offscreenCanvasContext;
-		const topLeft = this.viewport.screenToViewport({
-			x: 0,
-			y: 0
-		});
-		const topRight = this.viewport.screenToViewport({
-			x: width,
-			y: 0
-		});
-		const scale = this.viewport.getScale();
+		const topLeft = this.viewport.screenToViewport({ x: 0, y: 0 });
+		const topRight = this.viewport.screenToViewport({ x: width, y: 0 });
+		const scale = this.viewport.scale;
 		const size = this.config.size;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
@@ -52,7 +46,6 @@ export class Ruler {
 			NICE_STEPS.find((x) => x >= rawMajorStep) ?? NICE_STEPS[NICE_STEPS.length - 1];
 
 		const minorStep = majorStep / this.config.minorSteps;
-
 		const beginning = Math.ceil(topLeft.x / minorStep) * minorStep;
 
 		offscreenCtx.font = '12px monospace';
@@ -80,15 +73,9 @@ export class Ruler {
 
 	private renderVerticalRuler(height: number) {
 		const offscreenCtx = this.offscreenCanvasContext;
-		const topLeft = this.viewport.screenToViewport({
-			x: 0,
-			y: 0
-		});
-		const bottomLeft = this.viewport.screenToViewport({
-			x: 0,
-			y: height
-		});
-		const scale = this.viewport.getScale();
+		const topLeft = this.viewport.screenToViewport({ x: 0, y: 0 });
+		const bottomLeft = this.viewport.screenToViewport({ x: 0, y: height });
+		const scale = this.viewport.scale;
 		const size = this.config.size;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
@@ -96,7 +83,6 @@ export class Ruler {
 			NICE_STEPS.find((x) => x >= rawMajorStep) ?? NICE_STEPS[NICE_STEPS.length - 1];
 
 		const minorStep = majorStep / this.config.minorSteps;
-
 		const beginning = Math.ceil(topLeft.y / minorStep) * minorStep;
 
 		offscreenCtx.font = '12px monospace';

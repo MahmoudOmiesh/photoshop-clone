@@ -1,26 +1,36 @@
 import type { Component } from 'svelte';
-import type { PointerState, ToolContext, ToolOption } from './types';
+import type { PointerState, ToolOption } from './types';
+import type { EditorServices } from '$lib/editor/services';
 
 export abstract class Tool {
 	abstract readonly id: string;
 	abstract readonly name: string;
 	abstract readonly icon: Component;
-
-	abstract options: ToolOption[];
+	abstract readonly options: ToolOption[];
 
 	shortcut?: string;
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	getBaseCursor(_: Record<string, unknown>) {
+	get defaultOptions(): Record<string, unknown> {
+		const defaults: Record<string, unknown> = {};
+		for (const option of this.options) {
+			defaults[option.key] = option.default;
+		}
+		return defaults;
+	}
+
+	getBaseCursor(_options: Record<string, unknown>): string {
 		return 'default';
 	}
 
-	onPointerDown?(ctx: ToolContext, pointer: PointerState): void;
-	onPointerMove?(ctx: ToolContext, pointer: PointerState): void;
-	onPointerUp?(ctx: ToolContext, pointer: PointerState): void;
+	onActivate?(services: EditorServices): void;
+	onDeactivate?(services: EditorServices): void;
 
-	onWheel?(ctx: ToolContext, pointer: PointerState, delta: { x: number; y: number }): void;
+	onPointerDown?(services: EditorServices, pointer: PointerState): void;
+	onPointerMove?(services: EditorServices, pointer: PointerState): void;
+	onPointerUp?(services: EditorServices, pointer: PointerState): void;
 
-	onKeyDown?(ctx: ToolContext, key: string, modifiers: PointerState['modifiers']): void;
-	onKeyUp?(ctx: ToolContext, key: string, modifiers: PointerState['modifiers']): void;
+	onWheel?(services: EditorServices, pointer: PointerState, delta: { x: number; y: number }): void;
+
+	onKeyDown?(services: EditorServices, key: string, modifiers: PointerState['modifiers']): void;
+	onKeyUp?(services: EditorServices, key: string, modifiers: PointerState['modifiers']): void;
 }

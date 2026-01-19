@@ -1,45 +1,47 @@
 <script lang="ts">
 	import { Renderer } from '$lib/canvas/renderer';
-	import { getEditorStore } from '$lib/editor/editor-context';
+	import { getEditorContext } from '$lib/editor/context.svelte';
 	import EditorEventHandler from '$lib/editor/editor-event-handler.svelte';
-	import { assert } from '$lib/utils';
 	import { onMount } from 'svelte';
 
-	const ro = (
+	const resizeObserver = (
 		node: HTMLElement,
 		callback: (entry: ResizeObserverEntry, node: HTMLElement) => void
 	) => {
-		const ro = new ResizeObserver(([entry]) => callback(entry, node));
+		const ro = new ResizeObserver(([entry]) => callback(entry!, node));
 		ro.observe(node);
-		return {
-			destroy: () => ro.disconnect()
-		};
+		return { destroy: () => ro.disconnect() };
 	};
 
-	let displayCanvas: HTMLCanvasElement | null = null;
-	let overlayCanvas: HTMLCanvasElement | null = null;
+	let displayCanvas: HTMLCanvasElement | null = $state(null);
+	let overlayCanvas: HTMLCanvasElement | null = $state(null);
+	let renderer: Renderer | null = $state(null);
 
-	const editorStore = getEditorStore();
+	const ctx = getEditorContext();
 
 	onMount(() => {
-		assert(displayCanvas);
-		assert(overlayCanvas);
+		if (!displayCanvas || !overlayCanvas) return;
 
-		editorStore.attachRenderer(new Renderer(displayCanvas, overlayCanvas));
+		renderer = new Renderer(displayCanvas, overlayCanvas, {
+			documentStore: ctx.documentStore,
+			viewportStore: ctx.viewportStore,
+			uiStore: ctx.uiStore
+		});
+
+		ctx.setRenderCallback(() => renderer?.requestRerender());
 	});
-</script>
 
-<div
-	class="flex-1 relative border"
-	use:ro={(entry) => {
-		assert(editorStore.renderer);
+	function handleResize(entry: ResizeObserverEntry) {
+		if (!renderer) return;
 		const { contentRect } = entry;
-		editorStore.renderer.setDimensions({
+		renderer.setDimensions({
 			width: Math.floor(contentRect.width),
 			height: Math.floor(contentRect.height)
 		});
-	}}
->
+	}
+</script>
+
+<div class="flex-1 relative border" use:resizeObserver={handleResize}>
 	<EditorEventHandler>
 		<canvas bind:this={displayCanvas} class="absolute top-0 left-0"></canvas>
 		<canvas bind:this={overlayCanvas} class="absolute top-0 left-0 pointer-events-none"></canvas>

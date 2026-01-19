@@ -2,11 +2,11 @@
 	import '@fontsource-variable/plus-jakarta-sans';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { setEditorStore } from '$lib/editor/editor-context';
+	import { createEditorContext } from '$lib/editor/context.svelte';
 
 	let { children } = $props();
 
-	setEditorStore();
+	createEditorContext();
 </script>
 
 <svelte:head>

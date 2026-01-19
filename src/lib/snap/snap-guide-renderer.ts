@@ -1,12 +1,12 @@
-import { Viewport } from '$lib/canvas/viewport';
+import type { ViewportStore } from '$lib/stores/viewport.svelte';
 import type { SnapGuide } from './types';
 
 export class SnapGuideRenderer {
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
-	private viewport: Viewport;
+	private viewport: ViewportStore;
 
-	constructor(viewport: Viewport) {
+	constructor(viewport: ViewportStore) {
 		this.offscreenCanvas = new OffscreenCanvas(0, 0);
 		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
 
@@ -15,7 +15,6 @@ export class SnapGuideRenderer {
 		}
 
 		this.offscreenCanvasContext = offscreenCanvasContext;
-
 		this.viewport = viewport;
 	}
 
@@ -34,7 +33,7 @@ export class SnapGuideRenderer {
 		ctx.strokeStyle = 'red';
 		ctx.lineWidth = 1;
 
-		snapGuides.forEach((guide) => {
+		for (const guide of snapGuides) {
 			const isVertical = guide.type === 'vertical';
 			const screenPos = this.viewport.viewportToScreen({
 				x: isVertical ? guide.position : 0,
@@ -49,20 +48,16 @@ export class SnapGuideRenderer {
 				y: isVertical ? guide.end : 0
 			});
 
-			console.log(guide, screenPos, startPos, endPos);
-
+			ctx.beginPath();
 			if (guide.type === 'vertical') {
-				ctx.beginPath();
 				ctx.moveTo(screenPos.x, startPos.y);
 				ctx.lineTo(screenPos.x, endPos.y);
-				ctx.stroke();
 			} else {
-				ctx.beginPath();
 				ctx.moveTo(startPos.x, screenPos.y);
 				ctx.lineTo(endPos.x, screenPos.y);
-				ctx.stroke();
 			}
-		});
+			ctx.stroke();
+		}
 
 		ctx.restore();
 	}

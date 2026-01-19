@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getEditorStore } from '$lib/editor/editor-context';
+	import { getEditorContext } from '$lib/editor/context.svelte';
 	import { EyeIcon, EyeOffIcon, XIcon } from '@lucide/svelte';
 	import { Button } from './ui/button';
 	import { Card, CardHeader, CardContent } from './ui/card';
@@ -9,11 +9,11 @@
 	import { SetLayerVisibilityCommand } from '$lib/document/commands/layer/set-layer-visibility';
 	import { RemoveLayerCommand } from '$lib/document/commands/layer/remove-layer';
 
-	const editorStore = getEditorStore();
+	const { documentStore } = getEditorContext();
 </script>
 
 <Card class="py-2">
-	{#if editorStore.composition && editorStore.composition.layers.length > 0}
+	{#if documentStore.composition && documentStore.layers.length > 0}
 		<CardHeader class="flex flex-wrap px-2">
 			<div class="flex items-stretch gap-1">
 				<BlendingModeInput />
@@ -22,14 +22,14 @@
 		</CardHeader>
 
 		<CardContent class="px-2 space-y-1">
-			{#each editorStore.composition.layers as layer (layer.id)}
+			{#each documentStore.layers as layer (layer.id)}
 				<button
 					class={cn(
 						'w-full p-1 flex items-center gap-2 cursor-pointer hover:bg-accent/50 rounded-md border border-transparent',
-						editorStore.composition.isLayerActive(layer.id) && 'bg-accent/50 border-primary'
+						documentStore.isLayerActive(layer.id) && 'bg-accent/50 border-primary'
 					)}
 					onclick={(e) => {
-						editorStore.composition?.activateLayer(layer.id, {
+						documentStore.activateLayer(layer.id, {
 							destructive: !e.ctrlKey
 						});
 					}}
@@ -40,7 +40,7 @@
 						class="size-7"
 						onclick={(e) => {
 							e.stopPropagation();
-							editorStore.executeCommand(
+							documentStore.executeCommand(
 								new SetLayerVisibilityCommand({
 									layer,
 									visiblity: !layer.isVisible
@@ -64,7 +64,7 @@
 						variant="ghost"
 						onclick={(e) => {
 							e.stopPropagation();
-							editorStore.executeCommand(
+							documentStore.executeCommand(
 								new RemoveLayerCommand({
 									layer
 								})

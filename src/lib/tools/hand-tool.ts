@@ -1,50 +1,42 @@
 import { HandIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
-import type { PointerState, ToolContext, ToolOption } from './types';
-import { assert } from '$lib/utils';
+import type { PointerState, ToolOption } from './types';
+import type { EditorServices } from '$lib/editor/services';
 
 export class HandTool extends Tool {
-	id = 'hand-tool';
-	name = 'Hand Tool';
-	icon = HandIcon;
-	options: ToolOption[] = [];
-	shortcut = 'h';
+	readonly id = 'hand';
+	readonly name = 'Hand';
+	readonly icon = HandIcon;
+	readonly options: ToolOption[] = [];
+	readonly shortcut = 'h';
+
+	private isDragging = false;
+	private lastPos = { x: 0, y: 0 };
 
 	getBaseCursor() {
 		return 'grab';
 	}
 
-	private isDragging = false;
-	private lastPos = { x: 0, y: 0 };
-
-	onPointerDown(ctx: ToolContext, pointer: PointerState) {
+	onPointerDown(services: EditorServices, pointer: PointerState) {
 		this.isDragging = true;
-		this.lastPos = {
-			x: pointer.x,
-			y: pointer.y
-		};
-
-		ctx.cursorManager.setOverride('grabbing');
+		this.lastPos = { x: pointer.x, y: pointer.y };
+		services.actions.setOverrideCursor('grabbing');
 	}
 
-	onPointerMove(ctx: ToolContext, pointer: PointerState) {
+	onPointerMove(services: EditorServices, pointer: PointerState) {
 		if (!this.isDragging) return;
-		assert(ctx.editorStore.renderer);
 
 		const deltaX = pointer.x - this.lastPos.x;
 		const deltaY = pointer.y - this.lastPos.y;
 
-		ctx.editorStore.renderer.getViewport().pan({
-			x: deltaX,
-			y: deltaY
-		});
-		ctx.editorStore.renderer.requestRerender();
+		services.actions.pan({ x: deltaX, y: deltaY });
+		services.actions.requestRender();
 
 		this.lastPos = { x: pointer.x, y: pointer.y };
 	}
 
-	onPointerUp(ctx: ToolContext) {
+	onPointerUp(services: EditorServices) {
 		this.isDragging = false;
-		ctx.cursorManager.clearOverride();
+		services.actions.clearOverrideCursor();
 	}
 }

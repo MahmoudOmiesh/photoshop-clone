@@ -1,12 +1,14 @@
-// this class handles rendering
-// 1 - display canvas which is the main canvas where the composition is rendered
-// 2 - overlay canvas which will be used for any overlays like rulers, selection, etc.
-
 import type { Composition } from '$lib/document/composition.svelte';
-import { SnapGuideRenderer } from '$lib/snap/snap-guide-renderer';
+import type { DocumentStore, UIStore, ViewportStore } from '$lib/stores';
 import type { SnapGuide } from '$lib/snap/types';
 import { Ruler } from './ruler';
-import { Viewport } from './viewport';
+import { SnapGuideRenderer } from '$lib/snap/snap-guide-renderer';
+
+interface RendererDependencies {
+	documentStore: DocumentStore;
+	viewportStore: ViewportStore;
+	uiStore: UIStore;
+}
 
 export class Renderer {
 	private displayCanvas: HTMLCanvasElement;
@@ -14,24 +16,31 @@ export class Renderer {
 	private displayCanvasContext: CanvasRenderingContext2D;
 	private overlayCanvasContext: CanvasRenderingContext2D;
 
-	private viewport = new Viewport();
-	private composition: Composition | null = null;
+	private documentStore: DocumentStore;
+	private viewportStore: ViewportStore;
+	private uiStore: UIStore;
 
-	private width: number = 0;
-	private height: number = 0;
-
+	private width = 0;
+	private height = 0;
 	private shouldRerender = false;
 
-	private ruler: Ruler = new Ruler(this.viewport);
-	private snapGuidesRenderer: SnapGuideRenderer = new SnapGuideRenderer(this.viewport);
-	private snapGuides: SnapGuide[] = [];
+	private ruler: Ruler;
+	private snapGuidesRenderer: SnapGuideRenderer;
 
 	rulerEnabled = true;
 	snapGuidesEnabled = true;
 
-	constructor(displayCanvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement) {
+	constructor(
+		displayCanvas: HTMLCanvasElement,
+		overlayCanvas: HTMLCanvasElement,
+		deps: RendererDependencies
+	) {
 		this.displayCanvas = displayCanvas;
 		this.overlayCanvas = overlayCanvas;
+
+		this.documentStore = deps.documentStore;
+		this.viewportStore = deps.viewportStore;
+		this.uiStore = deps.uiStore;
 
 		const displayCanvasContext = this.displayCanvas.getContext('2d');
 		const overlayCanvasContext = this.overlayCanvas.getContext('2d');
@@ -43,41 +52,53 @@ export class Renderer {
 		this.displayCanvasContext = displayCanvasContext;
 		this.overlayCanvasContext = overlayCanvasContext;
 
-		// start render loop
-		requestAnimationFrame(() => {
-			this.render();
-		});
+		this.ruler = new Ruler(this.viewportStore);
+		this.snapGuidesRenderer = new SnapGuideRenderer(this.viewportStore);
+
+		this.startRenderLoop();
+	}
+
+	private startRenderLoop() {
+		const loop = () => {
+			if (this.shouldRerender) {
+				this.drawDisplayCanvas();
+				this.drawOverlayCanvas();
+				this.shouldRerender = false;
+			}
+			requestAnimationFrame(loop);
+		};
+		requestAnimationFrame(loop);
 	}
 
 	private drawOverlayCanvas() {
-		const overlayCtx = this.overlayCanvasContext;
-		overlayCtx.clearRect(0, 0, this.width, this.height);
+		const ctx = this.overlayCanvasContext;
+		ctx.clearRect(0, 0, this.width, this.height);
 
 		if (this.rulerEnabled) {
 			const rulerBitmap = this.ruler.getImageBitmap({ width: this.width, height: this.height });
-			overlayCtx.drawImage(rulerBitmap, 0, 0);
+			ctx.drawImage(rulerBitmap, 0, 0);
 		}
 
 		if (this.snapGuidesEnabled) {
-			const snapGuidesBitmap = this.snapGuidesRenderer.getImageBitmap(this.snapGuides, {
+			const snapGuidesBitmap = this.snapGuidesRenderer.getImageBitmap(this.uiStore.snapGuides, {
 				width: this.width,
 				height: this.height
 			});
-			overlayCtx.drawImage(snapGuidesBitmap, 0, 0);
+			ctx.drawImage(snapGuidesBitmap, 0, 0);
 		}
 	}
 
 	private drawDisplayCanvas() {
-		const displayCtx = this.displayCanvasContext;
-		displayCtx.clearRect(0, 0, this.width, this.height);
+		const ctx = this.displayCanvasContext;
+		const composition = this.documentStore.composition;
 
-		displayCtx.save();
+		ctx.clearRect(0, 0, this.width, this.height);
+		ctx.save();
 
 		this.clipViewportInsets();
 
-		const transformMatrix = this.viewport.getTransformMatrix();
-
-		displayCtx.setTransform(
+		const transformMatrix = this.viewportStore.transformMatrix;
+		ctx.setTransform(
 			transformMatrix.a,
 			transformMatrix.b,
 			transformMatrix.c,
@@ -86,44 +107,26 @@ export class Renderer {
 			transformMatrix.f
 		);
 
-		if (this.composition) {
-			const compositionBitmap = this.composition.getImageBitmap();
+		if (composition) {
+			const compositionBitmap = composition.getImageBitmap();
 			const xOffset = (this.width - compositionBitmap.width) * 0.5;
 			const yOffset = (this.height - compositionBitmap.height) * 0.5;
-			displayCtx.drawImage(compositionBitmap, xOffset, yOffset);
+			ctx.drawImage(compositionBitmap, xOffset, yOffset);
 		} else {
-			displayCtx.fillStyle = 'red';
-			displayCtx.fillRect(this.width / 2 - 50, this.height / 2 - 50, 100, 100);
+			ctx.fillStyle = 'red';
+			ctx.fillRect(this.width / 2 - 50, this.height / 2 - 50, 100, 100);
 		}
 
-		displayCtx.restore();
-	}
-
-	private render() {
-		if (this.shouldRerender) {
-			console.log('RENDER');
-
-			this.drawDisplayCanvas();
-			this.drawOverlayCanvas();
-
-			this.shouldRerender = false;
-		}
-
-		requestAnimationFrame(() => {
-			this.render();
-		});
+		ctx.restore();
 	}
 
 	private updateViewportInsets() {
 		const rulerSize = this.rulerEnabled ? this.ruler.getSize() : 0;
-		this.viewport.setInsets({
-			top: rulerSize,
-			left: rulerSize
-		});
+		this.viewportStore.setInsets({ top: rulerSize, left: rulerSize });
 	}
 
 	private clipViewportInsets() {
-		const insets = this.viewport.getInsets();
+		const insets = this.viewportStore.insets;
 		this.displayCanvasContext.beginPath();
 		this.displayCanvasContext.rect(
 			insets.left,
@@ -150,33 +153,13 @@ export class Renderer {
 		this.overlayCanvas.style.width = `${width}px`;
 		this.overlayCanvas.style.height = `${height}px`;
 
-		this.viewport.setContainerDimensions({ width, height });
+		this.viewportStore.setContainerDimensions({ width, height });
 		this.updateViewportInsets();
 
-		// rerender when changing dimensions
 		this.requestRerender();
 	}
 
 	requestRerender() {
 		this.shouldRerender = true;
-	}
-
-	getViewport() {
-		return this.viewport;
-	}
-
-	attachComposition(composition: Composition) {
-		this.composition = composition;
-		this.viewport.attachComposition(composition);
-		this.requestRerender();
-	}
-
-	setSnapGuides(guides: SnapGuide[]) {
-		this.snapGuides = guides;
-	}
-
-	clearSnapGuides() {
-		this.snapGuides = [];
-		this.requestRerender();
 	}
 }
