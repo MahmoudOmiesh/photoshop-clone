@@ -17,8 +17,6 @@ export abstract class Layer {
 		all: false
 	});
 
-	private renderCallback: (() => void) | null = null;
-
 	get name() {
 		return this._name;
 	}
@@ -46,20 +44,20 @@ export abstract class Layer {
 	setName(name: string) {
 		this._name = name;
 	}
+
 	setIsVisible(isVisible: boolean) {
 		this._isVisible = isVisible;
-		this.requestRerender();
 	}
+
 	setOpacity(opacity: number) {
 		if (opacity < 0 || opacity > 1) {
 			throw new Error('Opacity must be between 0 and 1');
 		}
 		this._opacity = opacity;
-		this.requestRerender();
 	}
+
 	setBlendMode(blendMode: BlendMode) {
 		this._blendMode = blendMode;
-		this.requestRerender();
 	}
 
 	blendModeToCompositeOperation() {
@@ -80,16 +78,6 @@ export abstract class Layer {
 		return map[this.blendMode];
 	}
 
-	// Rendering
-	setRenderCallback(callback: () => void) {
-		this.renderCallback = callback;
-	}
-
-	protected requestRerender() {
-		this.renderCallback?.();
-	}
-
-	// Checks
 	static isRasterLayer(layer: Layer): layer is RasterLayer {
 		return layer.type === 'raster';
 	}

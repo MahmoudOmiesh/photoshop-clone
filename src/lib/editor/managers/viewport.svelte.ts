@@ -1,12 +1,7 @@
+import type { Editor } from '../editor.svelte';
 import type { Composition } from '$lib/document/composition.svelte';
 import type { RasterLayer } from '$lib/document/layers/raster-layer';
-import {
-	applyToPoint,
-	compose,
-	inverse,
-	scale,
-	translate,
-} from 'transformation-matrix';
+import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
 
 export interface Point {
 	x: number;
@@ -44,7 +39,7 @@ const PRESET_SCALE_STEPS = [
 	1.75, 2, 2.5, 3, 4, 5, 6, 7, 8, 12, 16, 24, 32, 48, 64, 128
 ];
 
-export class ViewportStore {
+export class ViewportManager {
 	private _offset = $state<Point>({ x: 0, y: 0 });
 	private _scale = $state(1);
 	private _insets = $state<Insets>({ top: 0, left: 0 });
@@ -53,23 +48,39 @@ export class ViewportStore {
 	private config: ViewportConfig;
 	private composition: Composition | null = null;
 
-	get offset() { return this._offset; }
-	get scale() { return this._scale; }
-	get insets() { return this._insets; }
-	get containerDimensions() { return this._containerDimensions; }
+	constructor(
+		public readonly editor: Editor,
+		config?: Partial<ViewportConfig>
+	) {
+		this.config = { ...DEFAULT_CONFIG, ...config };
+	}
 
-	get zoomPercentage() { return `${Math.round(this._scale * 100)}%`; }
+	get offset() {
+		return this._offset;
+	}
+	get scale() {
+		return this._scale;
+	}
+	get insets() {
+		return this._insets;
+	}
+	get containerDimensions() {
+		return this._containerDimensions;
+	}
 
-	get transformMatrix() { return compose(
+	get zoomPercentage() {
+		return `${Math.round(this._scale * 100)}%`;
+	}
+
+	get transformMatrix() {
+		return compose(
 			translate(this._offset.x + this._insets.left, this._offset.y + this._insets.top),
 			scale(this._scale)
 		);
 	}
-	get inverseTransformMatrix() { return inverse(this.transformMatrix); }
 
-
-	constructor(config?: Partial<ViewportConfig>) {
-		this.config = { ...DEFAULT_CONFIG, ...config };
+	get inverseTransformMatrix() {
+		return inverse(this.transformMatrix);
 	}
 
 	attachComposition(composition: Composition) {

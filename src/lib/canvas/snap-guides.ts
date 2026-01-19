@@ -1,12 +1,12 @@
-import type { ViewportStore } from '$lib/stores/viewport.svelte';
+import type { Editor } from '$lib/editor/editor.svelte';
 import type { SnapGuide } from './types';
 
-export class SnapGuideRenderer {
+export class SnapGuides {
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
-	private viewport: ViewportStore;
+	private editor: Editor;
 
-	constructor(viewport: ViewportStore) {
+	constructor(editor: Editor) {
 		this.offscreenCanvas = new OffscreenCanvas(0, 0);
 		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
 
@@ -15,7 +15,7 @@ export class SnapGuideRenderer {
 		}
 
 		this.offscreenCanvasContext = offscreenCanvasContext;
-		this.viewport = viewport;
+		this.editor = editor;
 	}
 
 	getImageBitmap(snapGuides: SnapGuide[], { width, height }: { width: number; height: number }) {
@@ -29,21 +29,22 @@ export class SnapGuideRenderer {
 
 	private render(snapGuides: SnapGuide[]) {
 		const ctx = this.offscreenCanvasContext;
+		const viewport = this.editor.viewport;
 		ctx.save();
 		ctx.strokeStyle = 'red';
 		ctx.lineWidth = 1;
 
 		for (const guide of snapGuides) {
 			const isVertical = guide.type === 'vertical';
-			const screenPos = this.viewport.viewportToScreen({
+			const screenPos = viewport.viewportToScreen({
 				x: isVertical ? guide.position : 0,
 				y: isVertical ? 0 : guide.position
 			});
-			const startPos = this.viewport.viewportToScreen({
+			const startPos = viewport.viewportToScreen({
 				x: isVertical ? 0 : guide.start,
 				y: isVertical ? guide.start : 0
 			});
-			const endPos = this.viewport.viewportToScreen({
+			const endPos = viewport.viewportToScreen({
 				x: isVertical ? 0 : guide.end,
 				y: isVertical ? guide.end : 0
 			});

@@ -1,4 +1,4 @@
-import type { ViewportStore } from '$lib/stores/viewport.svelte';
+import type { Editor } from '$lib/editor/editor.svelte';
 
 interface RulerConfig {
 	pixelsPerMajorStep: number;
@@ -17,10 +17,11 @@ const NICE_STEPS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 export class Ruler {
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
-	private viewport: ViewportStore;
 	private config: RulerConfig;
 
-	constructor(viewport: ViewportStore, config?: RulerConfig) {
+	private editor: Editor;
+
+	constructor(editor: Editor, config?: RulerConfig) {
 		this.offscreenCanvas = new OffscreenCanvas(0, 0);
 		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
 
@@ -30,16 +31,22 @@ export class Ruler {
 
 		this.offscreenCanvasContext = offscreenCanvasContext;
 
-		this.viewport = viewport;
+		this.editor = editor;
 		this.config = config ?? DEFAULT_CONFIG;
+	}
+
+	get size() {
+		return this.config.size;
 	}
 
 	private renderHorizontalRuler(width: number) {
 		const offscreenCtx = this.offscreenCanvasContext;
-		const topLeft = this.viewport.screenToViewport({ x: 0, y: 0 });
-		const topRight = this.viewport.screenToViewport({ x: width, y: 0 });
-		const scale = this.viewport.scale;
 		const size = this.config.size;
+
+		const viewport = this.editor.viewport;
+		const topLeft = viewport.screenToViewport({ x: 0, y: 0 });
+		const topRight = viewport.screenToViewport({ x: width, y: 0 });
+		const scale = viewport.scale;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
 		const majorStep =
@@ -52,7 +59,7 @@ export class Ruler {
 		offscreenCtx.fillStyle = '#e2e8f0';
 
 		for (let coord = beginning; coord <= topRight.x; coord += minorStep) {
-			const screenPos = this.viewport.viewportToScreen({ x: coord, y: 0 });
+			const screenPos = viewport.viewportToScreen({ x: coord, y: 0 });
 
 			if (screenPos.x < size) continue;
 
@@ -73,10 +80,12 @@ export class Ruler {
 
 	private renderVerticalRuler(height: number) {
 		const offscreenCtx = this.offscreenCanvasContext;
-		const topLeft = this.viewport.screenToViewport({ x: 0, y: 0 });
-		const bottomLeft = this.viewport.screenToViewport({ x: 0, y: height });
-		const scale = this.viewport.scale;
 		const size = this.config.size;
+
+		const viewport = this.editor.viewport;
+		const topLeft = viewport.screenToViewport({ x: 0, y: 0 });
+		const bottomLeft = viewport.screenToViewport({ x: 0, y: height });
+		const scale = viewport.scale;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
 		const majorStep =
@@ -89,7 +98,7 @@ export class Ruler {
 		offscreenCtx.fillStyle = '#e2e8f0';
 
 		for (let coord = beginning; coord <= bottomLeft.y; coord += minorStep) {
-			const screenPos = this.viewport.viewportToScreen({ x: 0, y: coord });
+			const screenPos = viewport.viewportToScreen({ x: 0, y: coord });
 
 			if (screenPos.y < size) continue;
 
@@ -113,10 +122,6 @@ export class Ruler {
 		}
 
 		offscreenCtx.fillRect(size, size, 1, height - size);
-	}
-
-	getSize() {
-		return this.config.size;
 	}
 
 	getImageBitmap({ width, height }: { width: number; height: number }) {

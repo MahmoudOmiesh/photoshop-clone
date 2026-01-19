@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Renderer } from '$lib/canvas/renderer';
-	import { getEditorContext } from '$lib/editor/context.svelte';
+	import { getEditor } from '$lib/editor/editor.svelte';
 	import EditorEventHandler from '$lib/editor/editor-event-handler.svelte';
 	import { onMount } from 'svelte';
 
@@ -17,18 +17,14 @@
 	let overlayCanvas: HTMLCanvasElement | null = $state(null);
 	let renderer: Renderer | null = $state(null);
 
-	const ctx = getEditorContext();
+	const editor = getEditor();
 
 	onMount(() => {
 		if (!displayCanvas || !overlayCanvas) return;
 
-		renderer = new Renderer(displayCanvas, overlayCanvas, {
-			documentStore: ctx.documentStore,
-			viewportStore: ctx.viewportStore,
-			uiStore: ctx.uiStore
-		});
+		renderer = new Renderer(displayCanvas, overlayCanvas, editor);
 
-		ctx.setRenderCallback(() => renderer?.requestRerender());
+		editor.setRenderCallback(() => renderer?.requestRerender());
 	});
 
 	function handleResize(entry: ResizeObserverEntry) {

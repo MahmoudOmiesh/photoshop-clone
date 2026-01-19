@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { SetLayerOpacityCommand } from '$lib/document/commands/layer/set-layer-opacity';
-	import { getEditorContext } from '$lib/editor/context.svelte';
+	import { getEditor } from '$lib/editor/editor.svelte';
 	import { assert } from '$lib/utils';
 	import { Input } from './ui/input';
 	import { Label } from './ui/label';
 
-	const { documentStore } = getEditorContext();
+	const editor = getEditor();
 	const activeOpacity = $derived.by(() => {
-		if (!documentStore.composition) return null;
-		const activeLayers = documentStore.activeLayers;
+		if (!editor.document.composition) return null;
+		const activeLayers = editor.document.activeLayers;
 
 		let opacity = activeLayers[0] ? activeLayers[0].opacity : null;
 		for (const activeLayer of activeLayers) {
@@ -21,14 +21,14 @@
 	let opacityInput = $derived(activeOpacity != null ? `${activeOpacity * 100}%` : '');
 
 	function commitOpacity() {
-		assert(documentStore.composition);
+		assert(editor.document.composition);
 		// Remove '%' and any whitespace, then parse to number
 		const numericValue = parseFloat(opacityInput.replace(/[%\s]/g, ''));
 		const opacity = isNaN(numericValue) ? 1 : Math.max(0, Math.min(100, numericValue)) / 100;
 
-		documentStore.executeCommand(
+		editor.document.executeCommand(
 			new SetLayerOpacityCommand({
-				layers: documentStore.activeLayers,
+				layers: editor.document.activeLayers,
 				opacity
 			})
 		);

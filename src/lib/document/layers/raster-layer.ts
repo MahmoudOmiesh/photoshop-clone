@@ -33,7 +33,6 @@ export class RasterLayer extends Layer {
 
 		this.offscreenCanvasContext = offscreenCanvasContext;
 
-		// REMOVE THIS LATER
 		this.__makeRandomImage();
 	}
 
@@ -93,14 +92,9 @@ export class RasterLayer extends Layer {
 	move({ x, y }: { x: number; y: number }) {
 		this.transform.offsetX += x;
 		this.transform.offsetY += y;
-		this.requestRerender();
 	}
 
 	__makeRandomImage() {
-		// Source - https://stackoverflow.com/a
-		// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
-		// Retrieved 2025-12-17, License - CC BY-SA 3.0
-
 		function getRandomColor() {
 			const letters = '0123456789ABCDEF';
 			let color = '#';

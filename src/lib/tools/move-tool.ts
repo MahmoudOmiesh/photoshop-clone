@@ -1,9 +1,9 @@
 import { MousePointerIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
 import type { PointerState, ToolOption } from './types';
-import type { EditorServices } from '$lib/editor/services';
+import type { Editor } from '$lib/editor/editor.svelte';
 import { MoveLayerCommand } from '$lib/document/commands/layer/move-layer';
-import type { SnapTarget } from '$lib/snap/types';
+import type { SnapTarget } from '$lib/canvas/types';
 import type { RasterLayer } from '$lib/document/layers/raster-layer';
 
 export class MoveTool extends Tool {
@@ -17,7 +17,7 @@ export class MoveTool extends Tool {
 	private startPos = { x: 0, y: 0 };
 	private initialLayerBounds: SnapTarget | null = null;
 
-	private getActiveLayersSnapTarget(layers: RasterLayer[], services: EditorServices): SnapTarget {
+	private getActiveLayersSnapTarget(layers: RasterLayer[], editor: Editor): SnapTarget {
 		const snapTarget: SnapTarget = {
 			top: Infinity,
 			left: Infinity,
@@ -26,7 +26,7 @@ export class MoveTool extends Tool {
 		};
 
 		for (const layer of layers) {
-			const bounds = services.viewport.getLayerBounds(layer);
+			const bounds = editor.viewport.getLayerBounds(layer);
 			if (!bounds) continue;
 
 			snapTarget.top = Math.min(snapTarget.top, bounds.topLeft.y);
@@ -38,21 +38,21 @@ export class MoveTool extends Tool {
 		return snapTarget;
 	}
 
-	onPointerDown(services: EditorServices, pointer: PointerState) {
+	onPointerDown(editor: Editor, pointer: PointerState) {
 		this.isDragging = true;
 		this.startPos = { x: pointer.x, y: pointer.y };
 
-		const activeLayers = services.document.activeRasterLayers;
-		this.initialLayerBounds = this.getActiveLayersSnapTarget(activeLayers, services);
+		const activeLayers = editor.document.activeRasterLayers;
+		this.initialLayerBounds = this.getActiveLayersSnapTarget(activeLayers, editor);
 	}
 
-	onPointerMove(services: EditorServices, pointer: PointerState) {
+	onPointerMove(editor: Editor, pointer: PointerState) {
 		if (!this.isDragging || !this.initialLayerBounds) return;
 
 		const totalDeltaX = pointer.x - this.startPos.x;
 		const totalDeltaY = pointer.y - this.startPos.y;
 
-		const activeRasterLayers = services.document.activeRasterLayers;
+		const activeRasterLayers = editor.document.activeRasterLayers;
 
 		const intendedSnapTarget: SnapTarget = {
 			top: this.initialLayerBounds.top + totalDeltaY,
@@ -61,13 +61,13 @@ export class MoveTool extends Tool {
 			left: this.initialLayerBounds.left + totalDeltaX
 		};
 
-		const snapResult = services.snap.calculateSnap(intendedSnapTarget);
-		const currentSnapTarget = this.getActiveLayersSnapTarget(activeRasterLayers, services);
+		const snapResult = editor.snap.calculateSnap(intendedSnapTarget);
+		const currentSnapTarget = this.getActiveLayersSnapTarget(activeRasterLayers, editor);
 
 		const moveX = intendedSnapTarget.left - currentSnapTarget.left + (snapResult?.deltaX ?? 0);
 		const moveY = intendedSnapTarget.top - currentSnapTarget.top + (snapResult?.deltaY ?? 0);
 
-		services.actions.executeCommand(
+		editor.document.executeCommand(
 			new MoveLayerCommand({
 				layers: activeRasterLayers,
 				x: moveX,
@@ -76,20 +76,20 @@ export class MoveTool extends Tool {
 		);
 
 		if (snapResult) {
-			services.actions.setSnapGuides(snapResult.guides);
+			editor.ui.setSnapGuides(snapResult.guides);
 		} else {
-			services.actions.clearSnapGuides();
+			editor.ui.clearSnapGuides();
 		}
 	}
 
-	onPointerUp(services: EditorServices, _pointer: PointerState) {
+	onPointerUp(editor: Editor) {
 		this.isDragging = false;
 		this.initialLayerBounds = null;
-		services.actions.clearSnapGuides();
+		editor.ui.clearSnapGuides();
 	}
 
-	onKeyDown(services: EditorServices, key: string, modifiers: PointerState['modifiers']) {
-		const activeRasterLayers = services.document.activeRasterLayers;
+	onKeyDown(editor: Editor, key: string, modifiers: PointerState['modifiers']) {
+		const activeRasterLayers = editor.document.activeRasterLayers;
 		if (activeRasterLayers.length === 0) return;
 
 		const delta = modifiers.shift ? 10 : 1;
@@ -111,7 +111,7 @@ export class MoveTool extends Tool {
 		}
 
 		if (moveData) {
-			services.actions.executeCommand(
+			editor.document.executeCommand(
 				new MoveLayerCommand({
 					layers: activeRasterLayers,
 					x: moveData.x,

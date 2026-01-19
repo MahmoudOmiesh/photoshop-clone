@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getEditorContext } from '$lib/editor/context.svelte';
+	import { getEditor } from '$lib/editor/editor.svelte';
 	import type { PointerState } from '$lib/tools/types';
 
 	interface Props {
@@ -8,8 +8,7 @@
 	}
 
 	const { children }: Props = $props();
-	const ctx = getEditorContext();
-	const { toolStore, services } = ctx;
+	const editor = getEditor();
 
 	function createPointerState(e: PointerEvent): PointerState {
 		return {
@@ -28,22 +27,21 @@
 
 	function onpointerdown(e: PointerEvent) {
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		toolStore.activeTool.onPointerDown?.(services, createPointerState(e));
+		editor.onPointerDown(createPointerState(e));
 	}
 
 	function onpointermove(e: PointerEvent) {
-		toolStore.activeTool.onPointerMove?.(services, createPointerState(e));
+		editor.onPointerMove(createPointerState(e));
 	}
 
 	function onpointerup(e: PointerEvent) {
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-		toolStore.activeTool.onPointerUp?.(services, createPointerState(e));
+		editor.onPointerUp(createPointerState(e));
 	}
 
 	function onwheel(e: WheelEvent) {
 		e.preventDefault();
-		toolStore.activeTool?.onWheel?.(
-			services,
+		editor.onWheel(
 			{
 				x: e.offsetX,
 				y: e.offsetY,
@@ -56,33 +54,21 @@
 	}
 
 	function onkeydown(e: KeyboardEvent) {
-		if (e.ctrlKey || e.metaKey) {
-			if (e.key === 'z' && !e.shiftKey) {
-				e.preventDefault();
-				services.actions.undo();
-			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
-				e.preventDefault();
-				services.actions.redo();
-			}
-			return;
-		}
-
-		const shortcutTool = toolStore.getToolByShortcut(e.key.toLowerCase());
-		if (shortcutTool) {
-			toolStore.selectTool(shortcutTool.id, services);
-			return;
-		}
-
-		toolStore.activeTool.onKeyDown?.(services, e.key, {
+		editor.onKeyDown(e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
 			ctrl: e.ctrlKey,
 			meta: e.metaKey
 		});
+
+		// Prevent default for undo/redo shortcuts
+		if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'y')) {
+			e.preventDefault();
+		}
 	}
 
 	function onkeyup(e: KeyboardEvent) {
-		toolStore.activeTool.onKeyUp?.(services, e.key, {
+		editor.onKeyUp(e.key, {
 			alt: e.altKey,
 			shift: e.shiftKey,
 			ctrl: e.ctrlKey,
@@ -93,6 +79,6 @@
 
 <svelte:window {onkeydown} {onkeyup} />
 
-<div {onpointerdown} {onpointermove} {onpointerup} {onwheel} style:cursor={ctx.uiStore.cursor}>
+<div {onpointerdown} {onpointermove} {onpointerup} {onwheel} style:cursor={editor.ui.cursor}>
 	{@render children()}
 </div>

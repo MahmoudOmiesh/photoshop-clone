@@ -1,14 +1,6 @@
-import type { Composition } from '$lib/document/composition.svelte';
-import type { DocumentStore, UIStore, ViewportStore } from '$lib/stores';
-import type { SnapGuide } from '$lib/snap/types';
+import type { Editor } from '$lib/editor/editor.svelte';
 import { Ruler } from './ruler';
-import { SnapGuideRenderer } from '$lib/snap/snap-guide-renderer';
-
-interface RendererDependencies {
-	documentStore: DocumentStore;
-	viewportStore: ViewportStore;
-	uiStore: UIStore;
-}
+import { SnapGuides } from '$lib/canvas/snap-guides';
 
 export class Renderer {
 	private displayCanvas: HTMLCanvasElement;
@@ -16,31 +8,22 @@ export class Renderer {
 	private displayCanvasContext: CanvasRenderingContext2D;
 	private overlayCanvasContext: CanvasRenderingContext2D;
 
-	private documentStore: DocumentStore;
-	private viewportStore: ViewportStore;
-	private uiStore: UIStore;
-
 	private width = 0;
 	private height = 0;
 	private shouldRerender = false;
 
 	private ruler: Ruler;
-	private snapGuidesRenderer: SnapGuideRenderer;
-
 	rulerEnabled = true;
+	
+	private snapGuidesRenderer: SnapGuides;
 	snapGuidesEnabled = true;
 
-	constructor(
-		displayCanvas: HTMLCanvasElement,
-		overlayCanvas: HTMLCanvasElement,
-		deps: RendererDependencies
-	) {
+	private editor: Editor;
+
+	constructor(displayCanvas: HTMLCanvasElement, overlayCanvas: HTMLCanvasElement, editor: Editor) {
 		this.displayCanvas = displayCanvas;
 		this.overlayCanvas = overlayCanvas;
-
-		this.documentStore = deps.documentStore;
-		this.viewportStore = deps.viewportStore;
-		this.uiStore = deps.uiStore;
+		this.editor = editor;
 
 		const displayCanvasContext = this.displayCanvas.getContext('2d');
 		const overlayCanvasContext = this.overlayCanvas.getContext('2d');
@@ -52,8 +35,8 @@ export class Renderer {
 		this.displayCanvasContext = displayCanvasContext;
 		this.overlayCanvasContext = overlayCanvasContext;
 
-		this.ruler = new Ruler(this.viewportStore);
-		this.snapGuidesRenderer = new SnapGuideRenderer(this.viewportStore);
+		this.ruler = new Ruler(this.editor);
+		this.snapGuidesRenderer = new SnapGuides(this.editor);
 
 		this.startRenderLoop();
 	}
@@ -80,7 +63,7 @@ export class Renderer {
 		}
 
 		if (this.snapGuidesEnabled) {
-			const snapGuidesBitmap = this.snapGuidesRenderer.getImageBitmap(this.uiStore.snapGuides, {
+			const snapGuidesBitmap = this.snapGuidesRenderer.getImageBitmap(this.editor.ui.snapGuides, {
 				width: this.width,
 				height: this.height
 			});
@@ -90,14 +73,14 @@ export class Renderer {
 
 	private drawDisplayCanvas() {
 		const ctx = this.displayCanvasContext;
-		const composition = this.documentStore.composition;
+		const composition = this.editor.document.composition;
 
 		ctx.clearRect(0, 0, this.width, this.height);
 		ctx.save();
 
 		this.clipViewportInsets();
 
-		const transformMatrix = this.viewportStore.transformMatrix;
+		const transformMatrix = this.editor.viewport.transformMatrix;
 		ctx.setTransform(
 			transformMatrix.a,
 			transformMatrix.b,
@@ -121,12 +104,12 @@ export class Renderer {
 	}
 
 	private updateViewportInsets() {
-		const rulerSize = this.rulerEnabled ? this.ruler.getSize() : 0;
-		this.viewportStore.setInsets({ top: rulerSize, left: rulerSize });
+		const rulerSize = this.rulerEnabled ? this.ruler.size : 0;
+		this.editor.viewport.setInsets({ top: rulerSize, left: rulerSize });
 	}
 
 	private clipViewportInsets() {
-		const insets = this.viewportStore.insets;
+		const insets = this.editor.viewport.insets;
 		this.displayCanvasContext.beginPath();
 		this.displayCanvasContext.rect(
 			insets.left,
@@ -153,7 +136,7 @@ export class Renderer {
 		this.overlayCanvas.style.width = `${width}px`;
 		this.overlayCanvas.style.height = `${height}px`;
 
-		this.viewportStore.setContainerDimensions({ width, height });
+		this.editor.viewport.setContainerDimensions({ width, height });
 		this.updateViewportInsets();
 
 		this.requestRerender();

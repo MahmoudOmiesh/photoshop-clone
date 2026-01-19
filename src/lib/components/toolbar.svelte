@@ -2,13 +2,13 @@
 	import { AddLayerCommand } from '$lib/document/commands/layer/add-layer';
 	import { Composition } from '$lib/document/composition.svelte';
 	import { RasterLayer } from '$lib/document/layers/raster-layer';
-	import { getEditorContext } from '$lib/editor/context.svelte';
+	import { getEditor } from '$lib/editor/editor.svelte';
 	import { Button } from './ui/button';
 
-	const { documentStore, toolStore } = getEditorContext();
+	const editor = getEditor();
 
 	function addComposition() {
-		documentStore.attachComposition(
+		editor.document.attachComposition(
 			new Composition({
 				width: 800,
 				height: 600,
@@ -18,7 +18,7 @@
 	}
 
 	function addLayer() {
-		documentStore.executeCommand(
+		editor.document.executeCommand(
 			new AddLayerCommand({
 				layer: new RasterLayer('LAYER', 800, 600)
 			})
@@ -28,12 +28,12 @@
 
 <div class="bg-card h-fit m-2 rounded-md">
 	<ul class="flex flex-col gap-2 items-center p-1">
-		{#each toolStore.allTools as tool (tool.id)}
+		{#each editor.tools.allTools as tool (tool.id)}
 			<li>
 				<Button
 					size="icon"
-					variant={toolStore.isToolActive(tool.id) ? 'secondary' : 'ghost'}
-					onclick={() => toolStore.selectTool(tool.id)}
+					variant={editor.tools.isToolActive(tool.id) ? 'secondary' : 'ghost'}
+					onclick={() => editor.tools.selectTool(tool.id)}
 					title={`${tool.name}${tool.shortcut ? ` (${tool.shortcut.toUpperCase()})` : ''}`}
 				>
 					<tool.icon />

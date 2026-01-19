@@ -1,7 +1,7 @@
 import { HandIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
 import type { PointerState, ToolOption } from './types';
-import type { EditorServices } from '$lib/editor/services';
+import type { Editor } from '$lib/editor/editor.svelte';
 
 export class HandTool extends Tool {
 	readonly id = 'hand';
@@ -17,26 +17,26 @@ export class HandTool extends Tool {
 		return 'grab';
 	}
 
-	onPointerDown(services: EditorServices, pointer: PointerState) {
+	onPointerDown(editor: Editor, pointer: PointerState) {
 		this.isDragging = true;
 		this.lastPos = { x: pointer.x, y: pointer.y };
-		services.actions.setOverrideCursor('grabbing');
+		editor.ui.setOverrideCursor('grabbing');
 	}
 
-	onPointerMove(services: EditorServices, pointer: PointerState) {
+	onPointerMove(editor: Editor, pointer: PointerState) {
 		if (!this.isDragging) return;
 
 		const deltaX = pointer.x - this.lastPos.x;
 		const deltaY = pointer.y - this.lastPos.y;
 
-		services.actions.pan({ x: deltaX, y: deltaY });
-		services.actions.requestRender();
+		editor.viewport.pan({ x: deltaX, y: deltaY });
+		editor.requestRender();
 
 		this.lastPos = { x: pointer.x, y: pointer.y };
 	}
 
-	onPointerUp(services: EditorServices) {
+	onPointerUp(editor: Editor) {
 		this.isDragging = false;
-		services.actions.clearOverrideCursor();
+		editor.ui.clearOverrideCursor();
 	}
 }

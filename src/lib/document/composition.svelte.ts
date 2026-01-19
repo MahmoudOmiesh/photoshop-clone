@@ -18,8 +18,6 @@ export class Composition {
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
 
-	private renderCallback: (() => void) | null = null;
-
 	get dimensions() {
 		return {
 			width: this.width,
@@ -42,10 +40,10 @@ export class Composition {
 		this.offscreenCanvasContext = offscreenCanvasContext;
 	}
 
-	// === Layers ===
 	get layers() {
 		return this._layers;
 	}
+
 	get activeLayers() {
 		return this._layers.filter((layer) => this.activeLayerIds.has(layer.id));
 	}
@@ -55,13 +53,10 @@ export class Composition {
 	}
 
 	addLayer(layer: Layer) {
-		layer.setRenderCallback(() => this.requestRerender());
 		this._layers.push(layer);
-		this.activateLayer(layer.id, {
-			destructive: true
-		});
-		this.requestRerender();
+		this.activateLayer(layer.id, { destructive: true });
 	}
+
 	removeLayer(layerId: string) {
 		this._layers = this._layers.filter((layer) => layer.id !== layerId);
 		this.activeLayerIds.delete(layerId);
@@ -69,21 +64,13 @@ export class Composition {
 		if (this.activeLayerIds.size === 0 && this._layers.length > 0) {
 			this.activeLayerIds.add(this._layers[0]!.id);
 		}
-
-		this.requestRerender();
 	}
 
 	activateLayer(layerId: string, config?: { destructive: boolean }) {
 		if (config?.destructive) {
 			this.activeLayerIds.clear();
 		}
-
 		this.activeLayerIds.add(layerId);
-	}
-
-	// Rendering
-	private requestRerender() {
-		this.renderCallback?.();
 	}
 
 	private render() {
@@ -94,10 +81,6 @@ export class Composition {
 			if (!layer.isVisible) continue;
 			layer.renderTo(offscreenCtx);
 		}
-	}
-
-	setRenderCallback(callback: () => void) {
-		this.renderCallback = callback;
 	}
 
 	getImageBitmap() {

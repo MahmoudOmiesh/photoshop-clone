@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { getEditorContext } from '$lib/editor/context.svelte';
+	import { getEditor } from '$lib/editor/editor.svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { BLEND_MODES, type BlendMode } from '$lib/document/layers/types';
 	import { SetLayerBlendModeCommand } from '$lib/document/commands/layer/set-layer-blend-mode';
 	import { assert } from '$lib/utils';
 
-	const { documentStore } = getEditorContext();
+	const editor = getEditor();
 	const activeBlendMode = $derived.by(() => {
-		if (!documentStore.composition) return null;
-		const activeLayers = documentStore.activeLayers;
+		if (!editor.document.composition) return null;
+		const activeLayers = editor.document.activeLayers;
 
 		let blendMode = activeLayers[0] ? activeLayers[0].blendMode : null;
 		for (const activeLayer of activeLayers) {
@@ -24,10 +24,10 @@
 	bind:value={
 		() => activeBlendMode ?? '',
 		(blendMode: BlendMode) => {
-			assert(documentStore.composition);
-			documentStore.executeCommand(
+			assert(editor.document.composition);
+			editor.document.executeCommand(
 				new SetLayerBlendModeCommand({
-					layers: documentStore.activeLayers,
+					layers: editor.document.activeLayers,
 					blendMode
 				})
 			);

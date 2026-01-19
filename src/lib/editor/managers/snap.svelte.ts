@@ -1,6 +1,5 @@
-import type { Composition } from '$lib/document/composition.svelte';
-import type { ViewportStore, Bounds } from '$lib/stores/viewport.svelte';
-import type { SnapGuide, SnapResult, SnapSource, SnapTarget } from './types';
+import type { Editor } from '../editor.svelte';
+import type { SnapGuide, SnapResult, SnapSource, SnapTarget } from '$lib/canvas/types';
 
 interface SnapManagerConfig {
 	threshold: number;
@@ -12,26 +11,18 @@ const DEFAULT_CONFIG: SnapManagerConfig = {
 	snapToComposition: true
 };
 
-interface ViewportLike {
-	getCompositionBounds(): Bounds | null;
-}
-
 export class SnapManager {
 	private config: SnapManagerConfig;
 
-	constructor(config?: Partial<SnapManagerConfig>) {
+	constructor(
+		public readonly editor: Editor,
+		config?: Partial<SnapManagerConfig>
+	) {
 		this.config = { ...DEFAULT_CONFIG, ...config };
 	}
 
-	calculateSnap(params: {
-		target: SnapTarget;
-		composition: Composition;
-		viewportStore: ViewportStore;
-	}): SnapResult | null {
-		const { target, viewportStore } = params;
-
-		const sources = this.getSnapSources(viewportStore);
-
+	calculateSnap(target: SnapTarget): SnapResult | null {
+		const sources = this.getSnapSources();
 		const snapResultX = this.findHorizontalSnap({ sources, target });
 		const snapResultY = this.findVerticalSnap({ sources, target });
 
@@ -48,11 +39,11 @@ export class SnapManager {
 		};
 	}
 
-	private getSnapSources(viewport: ViewportLike): SnapSource[] {
+	private getSnapSources(): SnapSource[] {
 		const sources: SnapSource[] = [];
 
 		if (this.config.snapToComposition) {
-			const bounds = viewport.getCompositionBounds();
+			const bounds = this.editor.viewport.getCompositionBounds();
 			if (!bounds) return sources;
 
 			const { topLeft, width, height } = bounds;

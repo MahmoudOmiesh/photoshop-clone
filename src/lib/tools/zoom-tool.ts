@@ -1,7 +1,7 @@
 import { SearchIcon, ZoomInIcon, ZoomOutIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
 import type { PointerState, ToolOption } from './types';
-import type { EditorServices } from '$lib/editor/services';
+import type { Editor } from '$lib/editor/editor.svelte';
 
 export class ZoomTool extends Tool {
 	readonly id = 'zoom';
@@ -32,13 +32,13 @@ export class ZoomTool extends Tool {
 	private initialScale = 1;
 	private firstPos = { x: 0, y: 0 };
 
-	onPointerDown(services: EditorServices, pointer: PointerState) {
+	onPointerDown(editor: Editor, pointer: PointerState) {
 		this.isDragging = true;
-		this.initialScale = services.viewport.scale;
+		this.initialScale = editor.viewport.scale;
 		this.firstPos = { x: pointer.x, y: pointer.y };
 	}
 
-	onPointerMove(services: EditorServices, pointer: PointerState) {
+	onPointerMove(editor: Editor, pointer: PointerState) {
 		if (!this.isDragging) return;
 
 		this.didDrag = true;
@@ -46,11 +46,11 @@ export class ZoomTool extends Tool {
 		const deltaX = pointer.x - this.firstPos.x;
 		const factor = Math.pow(1.01, deltaX);
 
-		services.actions.zoomTo(this.initialScale * factor, this.firstPos);
-		services.actions.requestRender();
+		editor.viewport.zoomTo(this.initialScale * factor, this.firstPos);
+		editor.requestRender();
 	}
 
-	onPointerUp(services: EditorServices, _pointer: PointerState) {
+	onPointerUp(editor: Editor) {
 		this.isDragging = false;
 
 		if (this.didDrag) {
@@ -58,14 +58,14 @@ export class ZoomTool extends Tool {
 			return;
 		}
 
-		const zoomType = services.tool.getOptionValue<'zoom-in' | 'zoom-out'>('zoom-type');
+		const zoomType = editor.tools.getOptionValue<'zoom-in' | 'zoom-out'>('zoom-type');
 
 		if (zoomType === 'zoom-in') {
-			services.actions.zoomIn(this.firstPos);
+			editor.viewport.zoomIn(this.firstPos);
 		} else {
-			services.actions.zoomOut(this.firstPos);
+			editor.viewport.zoomOut(this.firstPos);
 		}
 
-		services.actions.requestRender();
+		editor.requestRender();
 	}
 }

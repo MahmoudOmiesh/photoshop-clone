@@ -1,12 +1,15 @@
-import type { SnapGuide } from '$lib/snap/types';
+import type { Editor } from '../editor.svelte';
+import type { SnapGuide } from '$lib/canvas/types';
 
-export class UIStore {
+export class UIManager {
 	private _baseCursor = $state('default');
 	private _overrideCursor = $state<string | null>(null);
 	private _snapGuides = $state<SnapGuide[]>([]);
 
-	readonly cursor = $derived(this._overrideCursor ?? this._baseCursor);
-	readonly snapGuides = $derived(this._snapGuides);
+	constructor(public readonly editor: Editor) {}
+
+	get cursor() { return this._overrideCursor ?? this._baseCursor; }
+	get snapGuides() { return this._snapGuides; }
 
 	setBaseCursor(cursor: string) {
 		this._baseCursor = cursor;
@@ -22,9 +25,11 @@ export class UIStore {
 
 	setSnapGuides(guides: SnapGuide[]) {
 		this._snapGuides = guides;
+		this.editor.requestRender();
 	}
 
 	clearSnapGuides() {
 		this._snapGuides = [];
+		this.editor.requestRender();
 	}
 }
