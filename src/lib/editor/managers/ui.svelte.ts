@@ -8,8 +8,12 @@ export class UIManager {
 
 	constructor(public readonly editor: Editor) {}
 
-	get cursor() { return this._overrideCursor ?? this._baseCursor; }
-	get snapGuides() { return this._snapGuides; }
+	get cursor() {
+		return this._overrideCursor ?? this._baseCursor;
+	}
+	get snapGuides() {
+		return this._snapGuides;
+	}
 
 	setBaseCursor(cursor: string) {
 		this._baseCursor = cursor;

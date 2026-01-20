@@ -1,4 +1,12 @@
+import type { Editor } from '$lib/editor/editor.svelte';
 import type { Component } from 'svelte';
+
+export type ToolAction = {
+	key: string;
+	label: string;
+	icon: Component;
+	action: (editor: Editor) => void;
+};
 
 export type ToolOption =
 	| {

@@ -1,5 +1,5 @@
 import type { Component } from 'svelte';
-import type { PointerState, ToolOption } from './types';
+import type { PointerState, ToolAction, ToolOption } from './types';
 import type { Editor } from '$lib/editor/editor.svelte';
 
 export abstract class Tool {
@@ -7,6 +7,7 @@ export abstract class Tool {
 	abstract readonly name: string;
 	abstract readonly icon: Component;
 	abstract readonly options: ToolOption[];
+	abstract readonly actions: ToolAction[];
 
 	shortcut?: string;
 

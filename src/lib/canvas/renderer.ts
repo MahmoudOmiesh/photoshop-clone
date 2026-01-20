@@ -1,6 +1,8 @@
 import type { Editor } from '$lib/editor/editor.svelte';
 import { Ruler } from './ruler';
 import { SnapGuides } from '$lib/canvas/snap-guides';
+import { CropOverlay } from './crop-overlay';
+import { CropTool } from '$lib/tools/crop-tool.svelte';
 
 export class Renderer {
 	private displayCanvas: HTMLCanvasElement;
@@ -14,9 +16,11 @@ export class Renderer {
 
 	private ruler: Ruler;
 	rulerEnabled = true;
-	
+
 	private snapGuidesRenderer: SnapGuides;
 	snapGuidesEnabled = true;
+
+	private cropOverlayRenderer: CropOverlay;
 
 	private editor: Editor;
 
@@ -37,6 +41,7 @@ export class Renderer {
 
 		this.ruler = new Ruler(this.editor);
 		this.snapGuidesRenderer = new SnapGuides(this.editor);
+		this.cropOverlayRenderer = new CropOverlay(this.editor);
 
 		this.startRenderLoop();
 	}
@@ -68,6 +73,15 @@ export class Renderer {
 				height: this.height
 			});
 			ctx.drawImage(snapGuidesBitmap, 0, 0);
+		}
+
+		const activeTool = this.editor.tools.activeTool;
+		if (activeTool instanceof CropTool && activeTool.cropRect) {
+			const cropBitmap = this.cropOverlayRenderer.getImageBitmap(activeTool.cropRect, {
+				width: this.width,
+				height: this.height
+			});
+			ctx.drawImage(cropBitmap, 0, 0);
 		}
 	}
 

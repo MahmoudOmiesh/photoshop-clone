@@ -4,6 +4,7 @@ import type { Tool } from '$lib/tools/base-tool';
 import { HandTool } from '$lib/tools/hand-tool';
 import { ZoomTool } from '$lib/tools/zoom-tool';
 import { MoveTool } from '$lib/tools/move-tool';
+import type { ToolAction } from '$lib/tools/types';
 
 const DEFAULT_TOOLS: Tool[] = [new HandTool(), new ZoomTool(), new MoveTool()];
 
@@ -77,6 +78,10 @@ export class ToolManager {
 		if (toolId === this.activeToolId) {
 			this.updateBaseCursor();
 		}
+	}
+
+	executeToolAction(action: ToolAction['action']) {
+		action(this.editor);
 	}
 
 	getOptionValue<T>(key: string): T {

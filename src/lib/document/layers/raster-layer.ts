@@ -3,9 +3,9 @@ import { Layer } from './base-layer.svelte';
 import type { LayerTransform } from './types';
 
 export class RasterLayer extends Layer {
-	private width: number;
-	private height: number;
-	private transform: LayerTransform = {
+	private _width: number;
+	private _height: number;
+	private _transform: LayerTransform = {
 		anchorX: 0.5,
 		anchorY: 0.5,
 		skewX: 0,
@@ -22,8 +22,8 @@ export class RasterLayer extends Layer {
 
 	constructor(name: string, width: number, height: number) {
 		super(name, 'raster');
-		this.width = width;
-		this.height = height;
+		this._width = width;
+		this._height = height;
 		this.offscreenCanvas = new OffscreenCanvas(width, height);
 
 		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
@@ -38,20 +38,24 @@ export class RasterLayer extends Layer {
 
 	get dimensions() {
 		return {
-			width: this.width,
-			height: this.height
+			width: this._width,
+			height: this._height
 		};
 	}
 
 	get offset() {
 		return {
-			x: this.transform.offsetX,
-			y: this.transform.offsetY
+			x: this._transform.offsetX,
+			y: this._transform.offsetY
 		};
 	}
 
+	get transform() {
+		return { ...this._transform };
+	}
+
 	getImageData() {
-		return this.offscreenCanvasContext.getImageData(0, 0, this.width, this.height);
+		return this.offscreenCanvasContext.getImageData(0, 0, this._width, this._height);
 	}
 
 	putImageData(imageData: ImageData) {
@@ -72,13 +76,13 @@ export class RasterLayer extends Layer {
 
 	getTransformationMatrix() {
 		const { anchorX, anchorY, offsetX, offsetY, rotation, scaleX, scaleY, skewX, skewY } =
-			this.transform;
+			this._transform;
 
 		const skewXRad = (skewX * Math.PI) / 180;
 		const skewYRad = (skewY * Math.PI) / 180;
 
-		const x = anchorX * this.width;
-		const y = anchorY * this.height;
+		const x = anchorX * this._width;
+		const y = anchorY * this._height;
 
 		return compose(
 			translate(-x, -y),
@@ -90,8 +94,17 @@ export class RasterLayer extends Layer {
 	}
 
 	move({ x, y }: { x: number; y: number }) {
-		this.transform.offsetX += x;
-		this.transform.offsetY += y;
+		this._transform.offsetX += x;
+		this._transform.offsetY += y;
+	}
+
+	setOffset({ x, y }: { x: number; y: number }) {
+		this._transform.offsetX = x;
+		this._transform.offsetY = y;
+	}
+
+	setTransform(transform: LayerTransform) {
+		this._transform = { ...transform };
 	}
 
 	__makeRandomImage() {
@@ -106,10 +119,10 @@ export class RasterLayer extends Layer {
 
 		const offscreenCtx = this.offscreenCanvasContext;
 		offscreenCtx.fillStyle = getRandomColor();
-		offscreenCtx.fillRect(0, 0, this.width, this.height);
+		offscreenCtx.fillRect(0, 0, this._width, this._height);
 
-		const min = 0.1 * this.width;
-		const max = 0.6 * this.width;
+		const min = 0.1 * this._width;
+		const max = 0.6 * this._width;
 
 		const randomLength = Math.floor(Math.random() * (max - min + 1) + min);
 		const randomPos = Math.floor(Math.random() * (max - min + 1) + min);

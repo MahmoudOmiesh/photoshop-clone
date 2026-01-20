@@ -8,6 +8,7 @@ export class ZoomTool extends Tool {
 	readonly name = 'Zoom';
 	readonly icon = SearchIcon;
 	readonly shortcut = 'z';
+	readonly actions = [];
 
 	readonly options: ToolOption[] = [
 		{

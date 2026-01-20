@@ -1,6 +1,6 @@
 import { MousePointerIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
-import type { PointerState, ToolOption } from './types';
+import type { PointerState } from './types';
 import type { Editor } from '$lib/editor/editor.svelte';
 import { MoveLayerCommand } from '$lib/document/commands/layer/move-layer';
 import type { SnapTarget } from '$lib/canvas/types';
@@ -10,7 +10,8 @@ export class MoveTool extends Tool {
 	readonly id = 'move';
 	readonly name = 'Move';
 	readonly icon = MousePointerIcon;
-	readonly options: ToolOption[] = [];
+	readonly options = [];
+	readonly actions = [];
 	readonly shortcut = 'v';
 
 	private isDragging = false;

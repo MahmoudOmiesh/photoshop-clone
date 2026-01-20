@@ -25,6 +25,19 @@ export class Composition {
 		};
 	}
 
+	setDimensions(width: number, height: number) {
+		this.width = width;
+		this.height = height;
+		this.offscreenCanvas = new OffscreenCanvas(width, height);
+
+		const offscreenCanvasContext = this.offscreenCanvas.getContext('2d');
+		if (!offscreenCanvasContext) {
+			throw new Error('Failed to get canvas context');
+		}
+
+		this.offscreenCanvasContext = offscreenCanvasContext;
+	}
+
 	constructor(config: CompositionConfig) {
 		this.width = config.width;
 		this.height = config.height;
@@ -73,9 +86,29 @@ export class Composition {
 		this.activeLayerIds.add(layerId);
 	}
 
+	private renderCheckerboardBackground() {
+		const ctx = this.offscreenCanvasContext;
+		const size = 10;
+		const color1 = '#fff';
+		const color2 = '#999';
+
+		for (let y = 0; y < this.height; y += size * 2) {
+			for (let x = 0; x < this.width; x += size * 2) {
+				ctx.fillStyle = color1;
+				ctx.fillRect(x, y, size, size);
+				ctx.fillRect(x + size, y + size, size, size);
+				ctx.fillStyle = color2;
+				ctx.fillRect(x + size, y, size, size);
+				ctx.fillRect(x, y + size, size, size);
+			}
+		}
+	}
+
 	private render() {
 		const offscreenCtx = this.offscreenCanvasContext;
 		offscreenCtx.clearRect(0, 0, this.width, this.height);
+
+		this.renderCheckerboardBackground();
 
 		for (const layer of this.layers) {
 			if (!layer.isVisible) continue;

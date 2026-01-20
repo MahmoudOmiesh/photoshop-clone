@@ -69,5 +69,17 @@
 				{/if}
 			{/each}
 		</div>
+
+		<div class="flex items-center gap-2">
+			{#each activeTool.actions as action (action.key)}
+				<Button
+					variant="secondary"
+					size="sm"
+					onclick={() => editor.tools.executeToolAction(action.action)}
+				>
+					<action.icon />
+				</Button>
+			{/each}
+		</div>
 	</div>
 {/if}

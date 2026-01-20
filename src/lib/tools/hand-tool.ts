@@ -1,13 +1,14 @@
 import { HandIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
-import type { PointerState, ToolOption } from './types';
+import type { PointerState } from './types';
 import type { Editor } from '$lib/editor/editor.svelte';
 
 export class HandTool extends Tool {
 	readonly id = 'hand';
 	readonly name = 'Hand';
 	readonly icon = HandIcon;
-	readonly options: ToolOption[] = [];
+	readonly options = [];
+	readonly actions = [];
 	readonly shortcut = 'h';
 
 	private isDragging = false;
