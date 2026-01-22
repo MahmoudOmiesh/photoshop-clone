@@ -35,7 +35,14 @@ export class CropTool extends Tool {
 	readonly id = 'crop';
 	readonly name = 'Crop';
 	readonly icon = CropIcon;
-	readonly options: ToolOption[] = [];
+	readonly options: ToolOption[] = [
+		{
+			type: 'checkbox',
+			key: 'aspect-locked',
+			label: 'Lock Aspect Ratio',
+			default: false
+		}
+	];
 	readonly shortcut = 'c';
 
 	readonly actions: ToolAction[] = [
@@ -91,6 +98,40 @@ export class CropTool extends Tool {
 		editor.tools.selectTool('hand');
 	}
 
+	onKeyDown(editor: Editor, key: string, modifiers: PointerState['modifiers']) {
+		assert(this.cropRect);
+		const delta = modifiers.shift ? 10 : 1;
+		let moveData: { x: number; y: number } | null = null;
+
+		switch (key) {
+			case 'ArrowRight':
+				moveData = { x: delta, y: 0 };
+				break;
+			case 'ArrowLeft':
+				moveData = { x: -delta, y: 0 };
+				break;
+			case 'ArrowUp':
+				moveData = { x: 0, y: -delta };
+				break;
+			case 'ArrowDown':
+				moveData = { x: 0, y: delta };
+				break;
+			case 'Enter':
+				this.confirm(editor);
+				break;
+			case 'Escape':
+				this.cancel(editor);
+				break;
+		}
+
+		if (moveData) {
+			this.setRect(editor, {
+				x: this.cropRect.x + moveData.x,
+				y: this.cropRect.y + moveData.y
+			});
+		}
+	}
+
 	onPointerDown(editor: Editor, pointer: PointerState) {
 		assert(this.cropRect);
 		this.activeHandle = this.getHandleAtPoint(editor, pointer);
@@ -124,7 +165,9 @@ export class CropTool extends Tool {
 			y: pointer.y - this.dragStart.y
 		};
 
-		this.applyCropTransform(editor, this.activeHandle, delta);
+		const aspectLocked = editor.tools.getOptionValue<boolean>('aspect-locked');
+		const lockAspect = aspectLocked || pointer.modifiers.shift;
+		this.applyCropTransform(editor, this.activeHandle, delta, lockAspect);
 	}
 
 	onPointerUp(editor: Editor) {
@@ -135,16 +178,9 @@ export class CropTool extends Tool {
 	}
 
 	private setRect(editor: Editor, cropRect: Partial<CropRect>) {
-		if (!this.cropRect) return;
-
+		assert(this.initialRect);
+		assert(this.cropRect);
 		const newRect = { ...this.cropRect, ...cropRect };
-
-		// // Enforce aspect ratio if locked
-		// if (this._aspectLocked && this._lockedAspectRatio && rect.width) {
-		//   newRect.height = newRect.width / this._lockedAspectRatio;
-		// } else if (this._aspectLocked && this._lockedAspectRatio && rect.height) {
-		//   newRect.width = newRect.height * this._lockedAspectRatio;
-		// }
 
 		this.cropRect = newRect;
 		editor.requestRender();
@@ -278,7 +314,12 @@ export class CropTool extends Tool {
 		editor.ui.setOverrideCursor(handle ? cursors[handle] : 'default');
 	}
 
-	private applyCropTransform(editor: Editor, handle: CropHandle, delta: { x: number; y: number }) {
+	private applyCropTransform(
+		editor: Editor,
+		handle: CropHandle,
+		delta: { x: number; y: number },
+		lockAspect: boolean
+	) {
 		if (!this.initialRect || !this.initialSnapTarget) return;
 
 		if (handle.startsWith('rotate-')) {
@@ -303,6 +344,8 @@ export class CropTool extends Tool {
 		const snapDeltaX = snapResult?.deltaX ?? 0;
 		const snapDeltaY = snapResult?.deltaY ?? 0;
 
+		const aspectRatio = this.initialRect.width / this.initialRect.height;
+
 		switch (handle) {
 			case 'move':
 				this.setRect(editor, {
@@ -311,63 +354,155 @@ export class CropTool extends Tool {
 				});
 				break;
 
-			case 'e':
-				this.setRect(editor, {
-					width: this.initialRect.width + delta.x + snapDeltaX
-				});
+			case 'e': {
+				const newWidth = this.initialRect.width + delta.x + snapDeltaX;
+				if (lockAspect) {
+					const newHeight = newWidth / aspectRatio;
+					const heightDelta = newHeight - this.initialRect.height;
+					this.setRect(editor, {
+						width: newWidth,
+						y: this.initialRect.y - heightDelta / 2,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, { width: newWidth });
+				}
 				break;
+			}
 
-			case 's':
-				this.setRect(editor, {
-					height: this.initialRect.height + delta.y + snapDeltaY
-				});
+			case 's': {
+				const newHeight = this.initialRect.height + delta.y + snapDeltaY;
+				if (lockAspect) {
+					const newWidth = newHeight * aspectRatio;
+					const widthDelta = newWidth - this.initialRect.width;
+					this.setRect(editor, {
+						height: newHeight,
+						x: this.initialRect.x - widthDelta / 2,
+						width: newWidth
+					});
+				} else {
+					this.setRect(editor, { height: newHeight });
+				}
 				break;
+			}
 
-			case 'w':
-				this.setRect(editor, {
-					x: this.initialRect.x + delta.x + snapDeltaX,
-					width: this.initialRect.width - delta.x - snapDeltaX
-				});
+			case 'w': {
+				const newWidth = this.initialRect.width - delta.x - snapDeltaX;
+				if (lockAspect) {
+					const newHeight = newWidth / aspectRatio;
+					const heightDelta = newHeight - this.initialRect.height;
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						width: newWidth,
+						y: this.initialRect.y - heightDelta / 2,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						width: newWidth
+					});
+				}
 				break;
+			}
 
-			case 'n':
-				this.setRect(editor, {
-					y: this.initialRect.y + delta.y + snapDeltaY,
-					height: this.initialRect.height - delta.y - snapDeltaY
-				});
+			case 'n': {
+				const newHeight = this.initialRect.height - delta.y - snapDeltaY;
+				if (lockAspect) {
+					const newWidth = newHeight * aspectRatio;
+					const widthDelta = newWidth - this.initialRect.width;
+					this.setRect(editor, {
+						y: this.initialRect.y + delta.y + snapDeltaY,
+						height: newHeight,
+						x: this.initialRect.x - widthDelta / 2,
+						width: newWidth
+					});
+				} else {
+					this.setRect(editor, {
+						y: this.initialRect.y + delta.y + snapDeltaY,
+						height: newHeight
+					});
+				}
 				break;
+			}
 
-			case 'se':
-				this.setRect(editor, {
-					width: this.initialRect.width + delta.x + snapDeltaX,
-					height: this.initialRect.height + delta.y + snapDeltaY
-				});
+			case 'se': {
+				if (lockAspect) {
+					const newWidth = this.initialRect.width + delta.x + snapDeltaX;
+					const newHeight = newWidth / aspectRatio;
+					this.setRect(editor, {
+						width: newWidth,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, {
+						width: this.initialRect.width + delta.x + snapDeltaX,
+						height: this.initialRect.height + delta.y + snapDeltaY
+					});
+				}
 				break;
+			}
 
-			case 'sw':
-				this.setRect(editor, {
-					x: this.initialRect.x + delta.x + snapDeltaX,
-					width: this.initialRect.width - delta.x - snapDeltaX,
-					height: this.initialRect.height + delta.y + snapDeltaY
-				});
+			case 'sw': {
+				if (lockAspect) {
+					const newWidth = this.initialRect.width - delta.x - snapDeltaX;
+					const newHeight = newWidth / aspectRatio;
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						width: newWidth,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						width: this.initialRect.width - delta.x - snapDeltaX,
+						height: this.initialRect.height + delta.y + snapDeltaY
+					});
+				}
 				break;
+			}
 
-			case 'ne':
-				this.setRect(editor, {
-					y: this.initialRect.y + delta.y + snapDeltaY,
-					width: this.initialRect.width + delta.x + snapDeltaX,
-					height: this.initialRect.height - delta.y - snapDeltaY
-				});
+			case 'ne': {
+				if (lockAspect) {
+					const newWidth = this.initialRect.width + delta.x + snapDeltaX;
+					const newHeight = newWidth / aspectRatio;
+					const heightDelta = newHeight - this.initialRect.height;
+					this.setRect(editor, {
+						y: this.initialRect.y - heightDelta,
+						width: newWidth,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, {
+						y: this.initialRect.y + delta.y + snapDeltaY,
+						width: this.initialRect.width + delta.x + snapDeltaX,
+						height: this.initialRect.height - delta.y - snapDeltaY
+					});
+				}
 				break;
+			}
 
-			case 'nw':
-				this.setRect(editor, {
-					x: this.initialRect.x + delta.x + snapDeltaX,
-					y: this.initialRect.y + delta.y + snapDeltaY,
-					width: this.initialRect.width - delta.x - snapDeltaX,
-					height: this.initialRect.height - delta.y - snapDeltaY
-				});
+			case 'nw': {
+				if (lockAspect) {
+					const newWidth = this.initialRect.width - delta.x - snapDeltaX;
+					const newHeight = newWidth / aspectRatio;
+					const heightDelta = newHeight - this.initialRect.height;
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						y: this.initialRect.y - heightDelta,
+						width: newWidth,
+						height: newHeight
+					});
+				} else {
+					this.setRect(editor, {
+						x: this.initialRect.x + delta.x + snapDeltaX,
+						y: this.initialRect.y + delta.y + snapDeltaY,
+						width: this.initialRect.width - delta.x - snapDeltaX,
+						height: this.initialRect.height - delta.y - snapDeltaY
+					});
+				}
 				break;
+			}
 		}
 
 		if (snapResult) {
