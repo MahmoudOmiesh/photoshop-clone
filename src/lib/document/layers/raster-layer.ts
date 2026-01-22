@@ -1,21 +1,10 @@
-import { compose, rotateDEG, scale, skew, translate } from 'transformation-matrix';
+import { compose, translate, identity, type Matrix } from 'transformation-matrix';
 import { Layer } from './base-layer.svelte';
-import type { LayerTransform } from './types';
 
 export class RasterLayer extends Layer {
 	private _width: number;
 	private _height: number;
-	private _transform: LayerTransform = {
-		anchorX: 0.5,
-		anchorY: 0.5,
-		skewX: 0,
-		skewY: 0,
-		scaleX: 1,
-		scaleY: 1,
-		offsetX: 0,
-		offsetY: 0,
-		rotation: 0
-	};
+	private _matrix: Matrix = identity();
 
 	private offscreenCanvas: OffscreenCanvas;
 	private offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
@@ -45,13 +34,13 @@ export class RasterLayer extends Layer {
 
 	get offset() {
 		return {
-			x: this._transform.offsetX,
-			y: this._transform.offsetY
+			x: this._matrix.e,
+			y: this._matrix.f
 		};
 	}
 
-	get transform() {
-		return { ...this._transform };
+	get matrix() {
+		return { ...this._matrix };
 	}
 
 	getImageData() {
@@ -67,44 +56,19 @@ export class RasterLayer extends Layer {
 		ctx.globalAlpha = this.opacity;
 		ctx.globalCompositeOperation = this.blendModeToCompositeOperation();
 
-		const matrix = this.getTransformationMatrix();
-		ctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+		const m = this._matrix;
+		ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
 
 		ctx.drawImage(this.offscreenCanvas, 0, 0);
 		ctx.restore();
 	}
 
-	getTransformationMatrix() {
-		const { anchorX, anchorY, offsetX, offsetY, rotation, scaleX, scaleY, skewX, skewY } =
-			this._transform;
-
-		const skewXRad = (skewX * Math.PI) / 180;
-		const skewYRad = (skewY * Math.PI) / 180;
-
-		const x = anchorX * this._width;
-		const y = anchorY * this._height;
-
-		return compose(
-			translate(-x, -y),
-			rotateDEG(rotation),
-			skew(skewXRad, skewYRad),
-			scale(scaleX, scaleY),
-			translate(offsetX + x, offsetY + y)
-		);
-	}
-
 	move({ x, y }: { x: number; y: number }) {
-		this._transform.offsetX += x;
-		this._transform.offsetY += y;
+		this._matrix = compose(translate(x, y), this._matrix);
 	}
 
-	setOffset({ x, y }: { x: number; y: number }) {
-		this._transform.offsetX = x;
-		this._transform.offsetY = y;
-	}
-
-	setTransform(transform: LayerTransform) {
-		this._transform = { ...transform };
+	setMatrix(matrix: Matrix) {
+		this._matrix = { ...matrix };
 	}
 
 	__makeRandomImage() {
