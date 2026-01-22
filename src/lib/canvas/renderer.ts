@@ -64,10 +64,14 @@ export class Renderer {
 
 		const activeTool = this.editor.tools.activeTool;
 		if (activeTool instanceof CropTool && activeTool.cropRect) {
-			const cropBitmap = this.cropOverlayRenderer.getImageBitmap(activeTool.cropRect, {
-				width: this.width,
-				height: this.height
-			});
+			const cropBitmap = this.cropOverlayRenderer.getImageBitmap(
+				activeTool.cropRect,
+				activeTool.resizeOverlayInfo,
+				{
+					width: this.width,
+					height: this.height
+				}
+			);
 			ctx.drawImage(cropBitmap, 0, 0);
 		}
 

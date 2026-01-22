@@ -1,5 +1,5 @@
 import type { Editor } from '$lib/editor/editor.svelte';
-import type { CropRect } from '$lib/tools/crop-tool.svelte';
+import type { CropRect, ResizeOverlayInfo } from '$lib/tools/crop-tool.svelte';
 import { compose, rotate, translate } from 'transformation-matrix';
 
 export class CropOverlay {
@@ -111,7 +111,75 @@ export class CropOverlay {
 		ctx.restore();
 	}
 
-	getImageBitmap(cropRect: CropRect, { width, height }: { width: number; height: number }) {
+	private drawDimensionOverlay(
+		cropRect: CropRect,
+		resizeInfo: ResizeOverlayInfo,
+		canvasBounds: { width: number; height: number }
+	) {
+		const ctx = this.offscreenCanvasContext;
+
+		const width = Math.round(cropRect.width);
+		const height = Math.round(cropRect.height);
+		const label1 = 'w:';
+		const label2 = 'h:';
+		const value1 = `${width} px`;
+		const value2 = `${height} px`;
+
+		const fontSize = 11;
+		const padding = 6;
+		const lineHeight = fontSize + 2;
+		const offsetX = 12;
+		const offsetY = -8;
+		const gap = 8;
+
+		ctx.save();
+		ctx.font = `${fontSize}px ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace`;
+
+		const labelWidth = Math.max(ctx.measureText(label1).width, ctx.measureText(label2).width);
+		const valueWidth = Math.max(ctx.measureText(value1).width, ctx.measureText(value2).width);
+		const boxWidth = labelWidth + gap + valueWidth + padding * 2;
+		const boxHeight = lineHeight * 2 + padding * 2;
+
+		// Position to top-right of cursor, but clamp within canvas
+		let boxX = resizeInfo.cursorX + offsetX;
+		let boxY = resizeInfo.cursorY + offsetY - boxHeight;
+
+		// Clamp to canvas bounds
+		if (boxX + boxWidth > canvasBounds.width) {
+			boxX = resizeInfo.cursorX - offsetX - boxWidth;
+		}
+		if (boxY < 0) {
+			boxY = resizeInfo.cursorY + offsetX;
+		}
+
+		// Background
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+		ctx.beginPath();
+		ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+		ctx.fill();
+
+		// Text - labels left-aligned, values right-aligned
+		ctx.fillStyle = '#fff';
+		ctx.textBaseline = 'top';
+
+		// Labels (left-aligned)
+		ctx.textAlign = 'left';
+		ctx.fillText(label1, boxX + padding, boxY + padding);
+		ctx.fillText(label2, boxX + padding, boxY + padding + lineHeight);
+
+		// Values (right-aligned)
+		ctx.textAlign = 'right';
+		ctx.fillText(value1, boxX + boxWidth - padding, boxY + padding);
+		ctx.fillText(value2, boxX + boxWidth - padding, boxY + padding + lineHeight);
+
+		ctx.restore();
+	}
+
+	getImageBitmap(
+		cropRect: CropRect,
+		resizeInfo: ResizeOverlayInfo | null,
+		{ width, height }: { width: number; height: number }
+	) {
 		this.offscreenCanvas.width = width;
 		this.offscreenCanvas.height = height;
 
@@ -120,6 +188,10 @@ export class CropOverlay {
 			this.drawDimmedRegion(cropRect, { width, height });
 			this.drawCropBox(cropRect);
 			this.drawHandles(cropRect);
+
+			if (resizeInfo) {
+				this.drawDimensionOverlay(cropRect, resizeInfo, { width, height });
+			}
 		}
 
 		return this.offscreenCanvas.transferToImageBitmap();

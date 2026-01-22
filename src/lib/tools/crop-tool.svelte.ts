@@ -31,6 +31,11 @@ export type CropHandle =
 	| 'rotate-se'
 	| 'move'; // inside the crop rect
 
+export interface ResizeOverlayInfo {
+	cursorX: number;
+	cursorY: number;
+}
+
 export class CropTool extends Tool {
 	readonly id = 'crop';
 	readonly name = 'Crop';
@@ -61,6 +66,7 @@ export class CropTool extends Tool {
 	];
 
 	cropRect = $state<CropRect | null>(null);
+	resizeOverlayInfo = $state<ResizeOverlayInfo | null>(null);
 
 	private activeHandle: CropHandle | null = null;
 
@@ -168,12 +174,21 @@ export class CropTool extends Tool {
 		const aspectLocked = editor.tools.getOptionValue<boolean>('aspect-locked');
 		const lockAspect = aspectLocked || pointer.modifiers.shift;
 		this.applyCropTransform(editor, this.activeHandle, delta, lockAspect);
+
+		// Show resize overlay for resize handles (not move or rotate)
+		const isResizeHandle = this.activeHandle !== 'move' && !this.activeHandle.startsWith('rotate-');
+		if (isResizeHandle) {
+			this.resizeOverlayInfo = { cursorX: pointer.x, cursorY: pointer.y };
+		} else {
+			this.resizeOverlayInfo = null;
+		}
 	}
 
 	onPointerUp(editor: Editor) {
 		this.activeHandle = null;
 		this.initialRect = null;
 		this.initialSnapTarget = null;
+		this.resizeOverlayInfo = null;
 		editor.ui.clearSnapGuides();
 	}
 
