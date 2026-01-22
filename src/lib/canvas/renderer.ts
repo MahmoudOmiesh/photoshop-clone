@@ -62,6 +62,15 @@ export class Renderer {
 		const ctx = this.overlayCanvasContext;
 		ctx.clearRect(0, 0, this.width, this.height);
 
+		const activeTool = this.editor.tools.activeTool;
+		if (activeTool instanceof CropTool && activeTool.cropRect) {
+			const cropBitmap = this.cropOverlayRenderer.getImageBitmap(activeTool.cropRect, {
+				width: this.width,
+				height: this.height
+			});
+			ctx.drawImage(cropBitmap, 0, 0);
+		}
+
 		if (this.rulerEnabled) {
 			const rulerBitmap = this.ruler.getImageBitmap({ width: this.width, height: this.height });
 			ctx.drawImage(rulerBitmap, 0, 0);
@@ -73,15 +82,6 @@ export class Renderer {
 				height: this.height
 			});
 			ctx.drawImage(snapGuidesBitmap, 0, 0);
-		}
-
-		const activeTool = this.editor.tools.activeTool;
-		if (activeTool instanceof CropTool && activeTool.cropRect) {
-			const cropBitmap = this.cropOverlayRenderer.getImageBitmap(activeTool.cropRect, {
-				width: this.width,
-				height: this.height
-			});
-			ctx.drawImage(cropBitmap, 0, 0);
 		}
 	}
 

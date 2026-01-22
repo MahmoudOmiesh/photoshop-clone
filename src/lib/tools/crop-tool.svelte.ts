@@ -5,6 +5,7 @@ import type { Editor } from '$lib/editor/editor.svelte';
 import type { Point } from '$lib/editor/managers';
 import { assert } from '$lib/utils';
 import { CropCompositionCommand } from '$lib/document/commands/crop-composition';
+import type { SnapTarget } from '$lib/canvas/types';
 
 export interface CropRect {
 	// relative to the composition
@@ -59,6 +60,7 @@ export class CropTool extends Tool {
 	private initialRect: CropRect | null = null;
 	private dragStart = { x: 0, y: 0 };
 	private initialAngle: number = 0;
+	private initialSnapTarget: SnapTarget | null = null;
 
 	onActivate(editor: Editor) {
 		const comp = editor.document.composition;
@@ -96,6 +98,7 @@ export class CropTool extends Tool {
 		if (this.activeHandle) {
 			this.dragStart = { x: pointer.x, y: pointer.y };
 			this.initialRect = { ...this.cropRect! };
+			this.initialSnapTarget = this.getCropSnapTarget(editor);
 
 			if (this.activeHandle.startsWith('rotate-')) {
 				const center = {
@@ -124,9 +127,11 @@ export class CropTool extends Tool {
 		this.applyCropTransform(editor, this.activeHandle, delta);
 	}
 
-	onPointerUp() {
+	onPointerUp(editor: Editor) {
 		this.activeHandle = null;
 		this.initialRect = null;
+		this.initialSnapTarget = null;
+		editor.ui.clearSnapGuides();
 	}
 
 	private setRect(editor: Editor, cropRect: Partial<CropRect>) {
@@ -143,6 +148,24 @@ export class CropTool extends Tool {
 
 		this.cropRect = newRect;
 		editor.requestRender();
+	}
+
+	private getCropSnapTarget(editor: Editor): SnapTarget | null {
+		if (!this.cropRect) return null;
+
+		const compositionBounds = editor.viewport.getCompositionBounds();
+		if (!compositionBounds) return null;
+
+		// Convert crop rect (composition-relative) to viewport coordinates
+		const left = compositionBounds.topLeft.x + this.cropRect.x;
+		const top = compositionBounds.topLeft.y + this.cropRect.y;
+
+		return {
+			top,
+			left,
+			right: left + this.cropRect.width,
+			bottom: top + this.cropRect.height
+		};
 	}
 
 	private getHandleAtPoint(editor: Editor, point: Point): CropHandle | null {
@@ -256,97 +279,161 @@ export class CropTool extends Tool {
 	}
 
 	private applyCropTransform(editor: Editor, handle: CropHandle, delta: { x: number; y: number }) {
-		if (!this.initialRect) return;
+		if (!this.initialRect || !this.initialSnapTarget) return;
+
+		if (handle.startsWith('rotate-')) {
+			const center = {
+				x: this.initialRect.x + this.initialRect.width / 2,
+				y: this.initialRect.y + this.initialRect.height / 2
+			};
+
+			const currentAngle = Math.atan2(
+				this.dragStart.y + delta.y - center.y,
+				this.dragStart.x + delta.x - center.x
+			);
+
+			const deltaAngle = currentAngle - this.initialAngle;
+			this.setRect(editor, { rotation: this.initialRect.rotation + deltaAngle });
+			return;
+		}
+
+		const intendedSnapTarget = this.calculateIntendedSnapTarget(handle, delta);
+		const snapResult = editor.snap.calculateSnap(intendedSnapTarget);
+
+		const snapDeltaX = snapResult?.deltaX ?? 0;
+		const snapDeltaY = snapResult?.deltaY ?? 0;
 
 		switch (handle) {
-			case 'move': {
+			case 'move':
 				this.setRect(editor, {
-					x: this.initialRect.x + delta.x,
-					y: this.initialRect.y + delta.y
+					x: this.initialRect.x + delta.x + snapDeltaX,
+					y: this.initialRect.y + delta.y + snapDeltaY
 				});
 				break;
-			}
 
-			case 'e': {
+			case 'e':
 				this.setRect(editor, {
-					width: this.initialRect.width + delta.x
+					width: this.initialRect.width + delta.x + snapDeltaX
 				});
 				break;
-			}
-			case 's': {
-				this.setRect(editor, {
-					height: this.initialRect.height + delta.y
-				});
-				break;
-			}
 
-			case 'w': {
+			case 's':
 				this.setRect(editor, {
-					x: this.initialRect.x + delta.x,
-					width: this.initialRect.width - delta.x
+					height: this.initialRect.height + delta.y + snapDeltaY
 				});
 				break;
-			}
-			case 'n': {
-				this.setRect(editor, {
-					y: this.initialRect.y + delta.y,
-					height: this.initialRect.height - delta.y
-				});
-				break;
-			}
-			case 'se': {
-				this.setRect(editor, {
-					width: this.initialRect.width + delta.x,
-					height: this.initialRect.height + delta.y
-				});
-				break;
-			}
 
-			case 'sw': {
+			case 'w':
 				this.setRect(editor, {
-					x: this.initialRect.x + delta.x,
-					width: this.initialRect.width - delta.x,
-					height: this.initialRect.height + delta.y
+					x: this.initialRect.x + delta.x + snapDeltaX,
+					width: this.initialRect.width - delta.x - snapDeltaX
 				});
 				break;
-			}
-			case 'ne': {
-				this.setRect(editor, {
-					y: this.initialRect.y + delta.y,
-					width: this.initialRect.width + delta.x,
-					height: this.initialRect.height - delta.y
-				});
-				break;
-			}
 
-			case 'nw': {
+			case 'n':
 				this.setRect(editor, {
-					x: this.initialRect.x + delta.x,
-					y: this.initialRect.y + delta.y,
-					width: this.initialRect.width - delta.x,
-					height: this.initialRect.height - delta.y
+					y: this.initialRect.y + delta.y + snapDeltaY,
+					height: this.initialRect.height - delta.y - snapDeltaY
 				});
 				break;
-			}
 
-			case 'rotate-nw':
-			case 'rotate-ne':
-			case 'rotate-sw':
-			case 'rotate-se': {
-				const center = {
-					x: this.initialRect.x + this.initialRect.width / 2,
-					y: this.initialRect.y + this.initialRect.height / 2
+			case 'se':
+				this.setRect(editor, {
+					width: this.initialRect.width + delta.x + snapDeltaX,
+					height: this.initialRect.height + delta.y + snapDeltaY
+				});
+				break;
+
+			case 'sw':
+				this.setRect(editor, {
+					x: this.initialRect.x + delta.x + snapDeltaX,
+					width: this.initialRect.width - delta.x - snapDeltaX,
+					height: this.initialRect.height + delta.y + snapDeltaY
+				});
+				break;
+
+			case 'ne':
+				this.setRect(editor, {
+					y: this.initialRect.y + delta.y + snapDeltaY,
+					width: this.initialRect.width + delta.x + snapDeltaX,
+					height: this.initialRect.height - delta.y - snapDeltaY
+				});
+				break;
+
+			case 'nw':
+				this.setRect(editor, {
+					x: this.initialRect.x + delta.x + snapDeltaX,
+					y: this.initialRect.y + delta.y + snapDeltaY,
+					width: this.initialRect.width - delta.x - snapDeltaX,
+					height: this.initialRect.height - delta.y - snapDeltaY
+				});
+				break;
+		}
+
+		if (snapResult) {
+			editor.ui.setSnapGuides(snapResult.guides);
+		} else {
+			editor.ui.clearSnapGuides();
+		}
+	}
+
+	private calculateIntendedSnapTarget(
+		handle: CropHandle,
+		delta: { x: number; y: number }
+	): SnapTarget {
+		const initial = this.initialSnapTarget!;
+
+		switch (handle) {
+			case 'move':
+				return {
+					top: initial.top + delta.y,
+					left: initial.left + delta.x,
+					bottom: initial.bottom + delta.y,
+					right: initial.right + delta.x
 				};
 
-				const currentAngle = Math.atan2(
-					this.dragStart.y + delta.y - center.y,
-					this.dragStart.x + delta.x - center.x
-				);
+			case 'e':
+				return { ...initial, right: initial.right + delta.x };
 
-				const deltaAngle = currentAngle - this.initialAngle;
-				this.setRect(editor, { rotation: this.initialRect.rotation + deltaAngle });
-				break;
-			}
+			case 's':
+				return { ...initial, bottom: initial.bottom + delta.y };
+
+			case 'w':
+				return { ...initial, left: initial.left + delta.x };
+
+			case 'n':
+				return { ...initial, top: initial.top + delta.y };
+
+			case 'se':
+				return {
+					...initial,
+					right: initial.right + delta.x,
+					bottom: initial.bottom + delta.y
+				};
+
+			case 'sw':
+				return {
+					...initial,
+					left: initial.left + delta.x,
+					bottom: initial.bottom + delta.y
+				};
+
+			case 'ne':
+				return {
+					...initial,
+					top: initial.top + delta.y,
+					right: initial.right + delta.x
+				};
+
+			case 'nw':
+				return {
+					...initial,
+					top: initial.top + delta.y,
+					left: initial.left + delta.x
+				};
+
+			default:
+				return initial;
 		}
 	}
 }

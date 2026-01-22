@@ -82,7 +82,7 @@ export class SnapManager {
 			}
 		}
 
-		if (!bestSnap || bestSnap.source.x === undefined) return null;
+		if (!bestSnap || bestSnap.source.x === undefined || bestSnap.adjustment === 0) return null;
 
 		return {
 			deltaX: bestSnap.adjustment,
@@ -117,7 +117,7 @@ export class SnapManager {
 			}
 		}
 
-		if (!bestSnap || bestSnap.source.y === undefined) return null;
+		if (!bestSnap || bestSnap.source.y === undefined || bestSnap.adjustment === 0) return null;
 
 		return {
 			deltaY: bestSnap.adjustment,
