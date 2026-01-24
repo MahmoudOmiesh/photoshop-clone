@@ -44,8 +44,9 @@ export class Ruler {
 		const size = this.config.size;
 
 		const viewport = this.editor.viewport;
-		const topLeft = viewport.screenToViewport({ x: 0, y: 0 });
-		const topRight = viewport.screenToViewport({ x: width, y: 0 });
+		// Use screenToDocument (no rotation) so ruler coordinates stay consistent
+		const topLeft = viewport.screenToDocument({ x: 0, y: 0 });
+		const topRight = viewport.screenToDocument({ x: width, y: 0 });
 		const scale = viewport.scale;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
@@ -59,7 +60,8 @@ export class Ruler {
 		offscreenCtx.fillStyle = '#e2e8f0';
 
 		for (let coord = beginning; coord <= topRight.x; coord += minorStep) {
-			const screenPos = viewport.viewportToScreen({ x: coord, y: 0 });
+			// Use documentToScreen (no rotation) for consistent ruler positioning
+			const screenPos = viewport.documentToScreen({ x: coord, y: 0 });
 
 			if (screenPos.x < size) continue;
 
@@ -83,8 +85,9 @@ export class Ruler {
 		const size = this.config.size;
 
 		const viewport = this.editor.viewport;
-		const topLeft = viewport.screenToViewport({ x: 0, y: 0 });
-		const bottomLeft = viewport.screenToViewport({ x: 0, y: height });
+		// Use screenToDocument (no rotation) so ruler coordinates stay consistent
+		const topLeft = viewport.screenToDocument({ x: 0, y: 0 });
+		const bottomLeft = viewport.screenToDocument({ x: 0, y: height });
 		const scale = viewport.scale;
 
 		const rawMajorStep = this.config.pixelsPerMajorStep / scale;
@@ -98,7 +101,8 @@ export class Ruler {
 		offscreenCtx.fillStyle = '#e2e8f0';
 
 		for (let coord = beginning; coord <= bottomLeft.y; coord += minorStep) {
-			const screenPos = viewport.viewportToScreen({ x: 0, y: coord });
+			// Use documentToScreen (no rotation) for consistent ruler positioning
+			const screenPos = viewport.documentToScreen({ x: 0, y: coord });
 
 			if (screenPos.y < size) continue;
 

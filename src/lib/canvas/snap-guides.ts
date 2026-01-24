@@ -36,27 +36,19 @@ export class SnapGuides {
 
 		for (const guide of snapGuides) {
 			const isVertical = guide.type === 'vertical';
-			const screenPos = viewport.viewportToScreen({
-				x: isVertical ? guide.position : 0,
-				y: isVertical ? 0 : guide.position
-			});
+			// Use viewportToScreen (with rotation) so guides rotate with content
 			const startPos = viewport.viewportToScreen({
-				x: isVertical ? 0 : guide.start,
-				y: isVertical ? guide.start : 0
+				x: isVertical ? guide.position : guide.start,
+				y: isVertical ? guide.start : guide.position
 			});
 			const endPos = viewport.viewportToScreen({
-				x: isVertical ? 0 : guide.end,
-				y: isVertical ? guide.end : 0
+				x: isVertical ? guide.position : guide.end,
+				y: isVertical ? guide.end : guide.position
 			});
 
 			ctx.beginPath();
-			if (guide.type === 'vertical') {
-				ctx.moveTo(screenPos.x, startPos.y);
-				ctx.lineTo(screenPos.x, endPos.y);
-			} else {
-				ctx.moveTo(startPos.x, screenPos.y);
-				ctx.lineTo(endPos.x, screenPos.y);
-			}
+			ctx.moveTo(startPos.x, startPos.y);
+			ctx.lineTo(endPos.x, endPos.y);
 			ctx.stroke();
 		}
 

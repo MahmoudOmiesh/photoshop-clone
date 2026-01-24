@@ -165,11 +165,12 @@ export class CropTool extends Tool {
 			return;
 		}
 
-		// Calculate delta and update crop rect based on which handle is being dragged
-		const delta = {
+		// Calculate screen delta and convert to document delta (accounts for rotation)
+		const screenDelta = {
 			x: pointer.x - this.dragStart.x,
 			y: pointer.y - this.dragStart.y
 		};
+		const delta = editor.viewport.screenDeltaToDocument(screenDelta);
 
 		const aspectLocked = editor.tools.getOptionValue<boolean>('aspect-locked');
 		const lockAspect = aspectLocked || pointer.modifiers.shift;

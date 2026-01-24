@@ -50,16 +50,20 @@ export class MoveTool extends Tool {
 	onPointerMove(editor: Editor, pointer: PointerState) {
 		if (!this.isDragging || !this.initialLayerBounds) return;
 
-		const totalDeltaX = pointer.x - this.startPos.x;
-		const totalDeltaY = pointer.y - this.startPos.y;
+		// Convert screen delta to document delta (accounts for rotation)
+		const screenDelta = {
+			x: pointer.x - this.startPos.x,
+			y: pointer.y - this.startPos.y
+		};
+		const docDelta = editor.viewport.screenDeltaToDocument(screenDelta);
 
 		const activeRasterLayers = editor.document.activeRasterLayers;
 
 		const intendedSnapTarget: SnapTarget = {
-			top: this.initialLayerBounds.top + totalDeltaY,
-			right: this.initialLayerBounds.right + totalDeltaX,
-			bottom: this.initialLayerBounds.bottom + totalDeltaY,
-			left: this.initialLayerBounds.left + totalDeltaX
+			top: this.initialLayerBounds.top + docDelta.y,
+			right: this.initialLayerBounds.right + docDelta.x,
+			bottom: this.initialLayerBounds.bottom + docDelta.y,
+			left: this.initialLayerBounds.left + docDelta.x
 		};
 
 		const snapResult = editor.snap.calculateSnap(intendedSnapTarget);

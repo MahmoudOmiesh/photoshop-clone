@@ -27,10 +27,14 @@ export class HandTool extends Tool {
 	onPointerMove(editor: Editor, pointer: PointerState) {
 		if (!this.isDragging) return;
 
-		const deltaX = pointer.x - this.lastPos.x;
-		const deltaY = pointer.y - this.lastPos.y;
+		const screenDelta = {
+			x: pointer.x - this.lastPos.x,
+			y: pointer.y - this.lastPos.y
+		};
+		// Convert screen delta for panning (accounts for rotation so content follows cursor)
+		const panDelta = editor.viewport.screenDeltaForPan(screenDelta);
 
-		editor.viewport.pan({ x: deltaX, y: deltaY });
+		editor.viewport.pan(panDelta);
 		editor.requestRender();
 
 		this.lastPos = { x: pointer.x, y: pointer.y };

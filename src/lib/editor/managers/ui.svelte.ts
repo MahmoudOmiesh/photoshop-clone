@@ -4,7 +4,7 @@ import type { SnapGuide } from '$lib/canvas/types';
 export class UIManager {
 	private _baseCursor = $state('default');
 	private _overrideCursor = $state<string | null>(null);
-	private _snapGuides = $state<SnapGuide[]>([]);
+	private _snapGuides: SnapGuide[] = [];
 
 	constructor(public readonly editor: Editor) {}
 

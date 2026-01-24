@@ -1,6 +1,6 @@
 import type { Editor } from '../editor.svelte';
 import type { RasterLayer } from '$lib/document/layers/raster-layer';
-import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
+import { applyToPoint, compose, inverse, rotateDEG, scale, translate } from 'transformation-matrix';
 
 export interface Point {
 	x: number;
@@ -40,9 +40,11 @@ const PRESET_SCALE_STEPS = [
 
 export class ViewportManager {
 	private _offset = $state<Point>({ x: 0, y: 0 });
+	private _rotation = $state(0);
 	private _scale = $state(1);
-	private _insets = $state<Insets>({ top: 0, left: 0 });
-	private _containerDimensions = $state<Dimensions>({ width: 0, height: 0 });
+
+	private _insets = { top: 0, left: 0 };
+	private _containerDimensions = { width: 0, height: 0 };
 
 	private config: ViewportConfig;
 
@@ -56,27 +58,40 @@ export class ViewportManager {
 	get offset() {
 		return this._offset;
 	}
+	get rotation() {
+		return this._rotation;
+	}
 	get scale() {
 		return this._scale;
 	}
 	get insets() {
 		return this._insets;
 	}
+
 	get containerDimensions() {
 		return this._containerDimensions;
 	}
-
-	get zoomPercentage() {
-		return `${Math.round(this._scale * 100)}%`;
+	get containerCenter() {
+		return {
+			x: this._insets.left + this._containerDimensions.width / 2,
+			y: this._insets.top + this._containerDimensions.height / 2
+		};
 	}
 
-	get transformMatrix() {
+	get coordinateTransformMatrix() {
 		return compose(
 			translate(this._offset.x + this._insets.left, this._offset.y + this._insets.top),
 			scale(this._scale)
 		);
 	}
+	get inverseCoordinateTransformMatrix() {
+		return inverse(this.coordinateTransformMatrix);
+	}
 
+	get transformMatrix() {
+		const center = this.containerCenter;
+		return compose(rotateDEG(this._rotation, center.x, center.y), this.coordinateTransformMatrix);
+	}
 	get inverseTransformMatrix() {
 		return inverse(this.transformMatrix);
 	}
@@ -86,6 +101,10 @@ export class ViewportManager {
 			x: this._offset.x + delta.x,
 			y: this._offset.y + delta.y
 		};
+	}
+
+	rotate(deltaDeg: number) {
+		this._rotation = (this._rotation + deltaDeg) % 360;
 	}
 
 	zoomTo(targetScale: number, pivot?: Point) {
@@ -99,9 +118,16 @@ export class ViewportManager {
 			this._scale = clampedScale;
 			const newScreenPoint = this.viewportToScreen(viewportPoint);
 
+			// Convert screen delta to pan delta (accounts for rotation)
+			const screenDelta = {
+				x: pivot.x - newScreenPoint.x,
+				y: pivot.y - newScreenPoint.y
+			};
+			const offsetDelta = this.screenDeltaForPan(screenDelta);
+
 			this._offset = {
-				x: this._offset.x + (pivot.x - newScreenPoint.x),
-				y: this._offset.y + (pivot.y - newScreenPoint.y)
+				x: this._offset.x + offsetDelta.x,
+				y: this._offset.y + offsetDelta.y
 			};
 		} else {
 			this._scale = clampedScale;
@@ -140,13 +166,7 @@ export class ViewportManager {
 
 		this._offset = { x: 0, y: 0 };
 		this._scale = 1;
-		this.zoomTo(
-			targetScale,
-			this.viewportToScreen({
-				x: this._insets.left + contWidth / 2,
-				y: this._insets.top + contHeight / 2
-			})
-		);
+		this.zoomTo(targetScale, this.viewportToScreen(this.containerCenter));
 	}
 
 	setContainerDimensions(dimensions: Dimensions) {
@@ -157,12 +177,44 @@ export class ViewportManager {
 		this._insets = insets;
 	}
 
+	// Document coordinate conversions (NO rotation - for ruler, snapping, tool logic)
+	screenToDocument(point: Point): Point {
+		return applyToPoint(this.inverseCoordinateTransformMatrix, point);
+	}
+
+	documentToScreen(point: Point): Point {
+		return applyToPoint(this.coordinateTransformMatrix, point);
+	}
+
+	// View coordinate conversions (WITH rotation - for hit testing rotated content)
 	screenToViewport(point: Point): Point {
 		return applyToPoint(this.inverseTransformMatrix, point);
 	}
 
 	viewportToScreen(point: Point): Point {
 		return applyToPoint(this.transformMatrix, point);
+	}
+
+	// Convert a screen-space delta to document-space delta (accounts for rotation + scale)
+	screenDeltaToDocument(delta: Point): Point {
+		const rad = (-this._rotation * Math.PI) / 180;
+		const cos = Math.cos(rad);
+		const sin = Math.sin(rad);
+		return {
+			x: (delta.x * cos - delta.y * sin) / this._scale,
+			y: (delta.x * sin + delta.y * cos) / this._scale
+		};
+	}
+
+	// Convert screen delta for panning (accounts for rotation only, not scale)
+	screenDeltaForPan(delta: Point): Point {
+		const rad = (-this._rotation * Math.PI) / 180;
+		const cos = Math.cos(rad);
+		const sin = Math.sin(rad);
+		return {
+			x: delta.x * cos - delta.y * sin,
+			y: delta.x * sin + delta.y * cos
+		};
 	}
 
 	getCompositionBounds(): Bounds | null {
