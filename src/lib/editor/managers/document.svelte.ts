@@ -27,7 +27,6 @@ export class DocumentManager {
 
 	attachComposition(composition: Composition) {
 		this._composition = composition;
-		this.editor.viewport.attachComposition(composition);
 		this.editor.requestRender();
 	}
 

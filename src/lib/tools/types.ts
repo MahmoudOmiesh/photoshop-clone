@@ -4,7 +4,7 @@ import type { Component } from 'svelte';
 export type ToolAction = {
 	key: string;
 	label: string;
-	icon: Component;
+	icon?: Component;
 	action: (editor: Editor) => void;
 };
 

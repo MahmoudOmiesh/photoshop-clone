@@ -77,7 +77,11 @@
 					size="sm"
 					onclick={() => editor.tools.executeToolAction(action.action)}
 				>
-					<action.icon />
+					{#if action.icon}
+						<action.icon />
+					{:else}
+						{action.label}
+					{/if}
 				</Button>
 			{/each}
 		</div>

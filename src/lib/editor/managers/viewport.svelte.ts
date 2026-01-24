@@ -1,5 +1,4 @@
 import type { Editor } from '../editor.svelte';
-import type { Composition } from '$lib/document/composition.svelte';
 import type { RasterLayer } from '$lib/document/layers/raster-layer';
 import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
 
@@ -46,7 +45,6 @@ export class ViewportManager {
 	private _containerDimensions = $state<Dimensions>({ width: 0, height: 0 });
 
 	private config: ViewportConfig;
-	private composition: Composition | null = null;
 
 	constructor(
 		public readonly editor: Editor,
@@ -81,10 +79,6 @@ export class ViewportManager {
 
 	get inverseTransformMatrix() {
 		return inverse(this.transformMatrix);
-	}
-
-	attachComposition(composition: Composition) {
-		this.composition = composition;
 	}
 
 	pan(delta: Point) {
@@ -132,6 +126,29 @@ export class ViewportManager {
 		}
 	}
 
+	fitTheArea() {
+		const composition = this.editor.document.composition;
+		if (!composition) return;
+
+		const { width: compWidth, height: compHeight } = composition.dimensions;
+		const { width: contWidth, height: contHeight } = this._containerDimensions;
+
+		// Compute scale to fit, preserving aspect ratio
+		const scaleX = contWidth / compWidth;
+		const scaleY = contHeight / compHeight;
+		const targetScale = Math.min(scaleX, scaleY) * 0.95;
+
+		this._offset = { x: 0, y: 0 };
+		this._scale = 1;
+		this.zoomTo(
+			targetScale,
+			this.viewportToScreen({
+				x: this._insets.left + contWidth / 2,
+				y: this._insets.top + contHeight / 2
+			})
+		);
+	}
+
 	setContainerDimensions(dimensions: Dimensions) {
 		this._containerDimensions = dimensions;
 	}
@@ -149,9 +166,9 @@ export class ViewportManager {
 	}
 
 	getCompositionBounds(): Bounds | null {
-		if (!this.composition) return null;
+		if (!this.editor.document.composition) return null;
 
-		const { width, height } = this.composition.dimensions;
+		const { width, height } = this.editor.document.composition.dimensions;
 		return {
 			topLeft: {
 				x: 0.5 * (this._containerDimensions.width - width),

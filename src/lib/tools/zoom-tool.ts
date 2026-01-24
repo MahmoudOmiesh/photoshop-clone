@@ -1,6 +1,6 @@
 import { SearchIcon, ZoomInIcon, ZoomOutIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
-import type { PointerState, ToolOption } from './types';
+import type { PointerState, ToolAction, ToolOption } from './types';
 import type { Editor } from '$lib/editor/editor.svelte';
 
 export class ZoomTool extends Tool {
@@ -8,7 +8,16 @@ export class ZoomTool extends Tool {
 	readonly name = 'Zoom';
 	readonly icon = SearchIcon;
 	readonly shortcut = 'z';
-	readonly actions = [];
+	readonly actions: ToolAction[] = [
+		{
+			key: 'fit-the-area',
+			label: 'Fit the Area',
+			action: (editor: Editor) => {
+				editor.viewport.fitTheArea();
+				editor.requestRender();
+			}
+		}
+	];
 
 	readonly options: ToolOption[] = [
 		{
