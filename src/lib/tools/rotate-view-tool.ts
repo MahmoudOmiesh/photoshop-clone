@@ -1,6 +1,6 @@
 import { RotateCcwIcon } from '@lucide/svelte';
 import { Tool } from './base-tool';
-import type { PointerState } from './types';
+import type { PointerState, ToolAction } from './types';
 import type { Editor } from '$lib/editor/editor.svelte';
 
 export class RotateViewTool extends Tool {
@@ -8,7 +8,16 @@ export class RotateViewTool extends Tool {
 	readonly name = 'Rotate View';
 	readonly icon = RotateCcwIcon;
 	readonly options = [];
-	readonly actions = [];
+	readonly actions: ToolAction[] = [
+		{
+			key: 'reset-rotation',
+			label: 'Reset',
+			action: (editor: Editor) => {
+				editor.viewport.resetRotation();
+				editor.requestRender();
+			}
+		}
+	];
 	readonly shortcut = 'r';
 
 	private isDragging = false;

@@ -106,6 +106,9 @@ export class ViewportManager {
 	rotate(deltaDeg: number) {
 		this._rotation = (this._rotation + deltaDeg) % 360;
 	}
+	resetRotation() {
+		this._rotation = 0;
+	}
 
 	zoomTo(targetScale: number, pivot?: Point) {
 		const clampedScale = Math.max(
